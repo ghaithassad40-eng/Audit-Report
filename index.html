@@ -142,9 +142,10 @@
   /* ---------- document ---------- */
   .docwrap { margin: 0 22px 40px; background: #e9edf1; border: 1px solid #e3e8ee; border-top: 0; padding: 20px; height: 72vh; overflow: auto; }
   .doc { background: #fff; max-width: 1000px; margin: 0 auto; padding: 30px 34px; box-shadow: 0 2px 14px rgba(20,40,70,.12); transform-origin: top center; }
-  .letterhead { text-align: center; border-bottom: 2px solid #14304f; padding-bottom: 12px; margin-bottom: 14px; }
-  .lh-emblem { font-size: 26px; }
-  .lh-name { font-size: 18px; font-weight: 800; color: #14304f; margin-top: 4px; }
+  .letterhead { display: flex; align-items: center; gap: 22px; border-bottom: 2px solid #14304f; padding-bottom: 14px; margin-bottom: 16px; }
+  .lh-logo { height: 86px; width: auto; flex: none; }
+  .lh-text { flex: 1; }
+  .lh-name { font-size: 19px; font-weight: 800; color: #14304f; }
   .lh-title { font-size: 14px; font-weight: 700; color: #33415a; margin-top: 6px; }
   .doc-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12.5px; color: #33415a; margin-bottom: 16px; max-width: 540px; }
   .doc-meta b { color: #5b6b7b; font-weight: 600; }
@@ -426,9 +427,11 @@
   <div class="docwrap" id="docwrap">
     <div class="doc" id="doc">
       <div class="letterhead">
-        <div class="lh-emblem">⛰️</div>
-        <div class="lh-name">Arizona National General Trading &amp; Contracting (W.L.L)</div>
-        <div class="lh-title">Detailed Statement by Cost Dimension</div>
+        <img class="lh-logo" src="logo.png" alt="Arizona National">
+        <div class="lh-text">
+          <div class="lh-name">Arizona National General Trading &amp; Contracting (W.L.L)</div>
+          <div class="lh-title">Detailed Statement by Cost Dimension</div>
+        </div>
       </div>
       <div class="doc-meta" id="docMeta"></div>
       <div id="printHeader" class="print-only"></div>
@@ -830,9 +833,12 @@
       });
       if (any) XLSX.writeFile(wb, 'Detailed_Statement_by_Cost_Dimension.xlsx'); else alert('No rows to export with the current filters.');
     }
-    function exportWord() {
+    async function exportWord() {
+      let logoData = '';
+      try { const blob = await (await fetch('logo.png')).blob(); logoData = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); }); } catch (e) {}
       const style = '<style>body{font-family:"Segoe UI",Arial,sans-serif;font-size:11px;}table{border-collapse:collapse;width:100%;margin-bottom:10px}th,td{border:1px solid #9aa7b5;padding:4px 6px}thead th{background:#14304f;color:#fff}h1,.lh-name{color:#14304f}</style>';
-      const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">' + style + '</head><body>' + docEl.innerHTML + '</body></html>';
+      const body = docEl.innerHTML.replace('src="logo.png"', 'src="' + logoData + '"');
+      const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">' + style + '</head><body>' + body + '</body></html>';
       const blob = new Blob(['﻿' + html], { type: 'application/msword' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Detailed_Statement_by_Cost_Dimension.doc'; a.click(); URL.revokeObjectURL(a.href);
     }
