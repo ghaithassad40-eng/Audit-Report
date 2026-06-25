@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statement of Account — Interactive</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, "Tahoma", sans-serif; color: #1a1a1a; font-size: 12px; margin: 0; background: #eef1f4; }
+
+  .toolbar { position: sticky; top: 0; z-index: 20; background: #14304f; color: #fff; padding: 10px 16px;
+             display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+  .toolbar h1 { font-size: 15px; margin: 0 18px 0 0; align-self: center; white-space: nowrap; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #aebfd2; }
+  .field input, .field select { font: inherit; font-size: 12px; padding: 4px 7px; border-radius: 4px;
+            border: 1px solid #3a5b80; background: #fff; color: #1a1a1a; }
+  .dims { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; min-height: 26px; }
+  .dims label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; text-transform: none; letter-spacing: 0;
+                color: #fff; background: #21456b; padding: 4px 9px; border-radius: 14px; cursor: pointer; }
+  .dims input { accent-color: #b8860b; }
+  .btn { font: inherit; font-size: 12px; padding: 6px 12px; border: 0; border-radius: 4px; cursor: pointer; background: #b8860b; color: #fff; font-weight: 600; }
+  .btn.ghost { background: #21456b; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .spacer { flex: 1; }
+
+  .summary-strip { background: #fff; border-bottom: 1px solid #d4dbe2; padding: 8px 16px; display: flex; gap: 26px; flex-wrap: wrap; font-size: 12px; align-items: center; }
+  .summary-strip b { color: #14304f; }
+  .summary-strip .neg { color: #b00020; }
+  .status { color: #6b7a89; }
+  .status.err { color: #b00020; font-weight: 600; }
+  .status.ok { color: #1a7f37; font-weight: 600; }
+
+  .page { max-width: 1180px; margin: 16px auto; padding: 0 16px 60px; }
+  .dimension { background: #fff; border: 1px solid #d4dbe2; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; }
+  .dimtitle { font-size: 17px; color: #fff; background: #14304f; padding: 7px 13px; margin: 0 0 10px; border-radius: 4px; }
+  h2 { font-size: 13px; color: #14304f; margin: 12px 0 5px; }
+  h3 { font-size: 12.5px; color: #14304f; margin: 18px 0 2px; border-bottom: 2px solid #14304f; padding-bottom: 3px; }
+  .pidx { color: #b8860b; }
+  .soa-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: #999; margin: 2px 0 5px; }
+  .meta2 { font-size: 11px; color: #555; margin-bottom: 8px; }
+  .meta2 span { margin-right: 18px; }
+
+  table { border-collapse: collapse; width: 100%; }
+  table.soa th, table.soa td { border: 0.5px solid #cfd6dd; padding: 3px 5px; vertical-align: top; }
+  table.soa thead th { background: #14304f; color: #fff; font-weight: 600; text-align: left; position: sticky; top: 58px; }
+  table.soa tbody tr:nth-child(even) { background: #f4f7fa; }
+  table.summary th, table.summary td { border: 0.5px solid #cfd6dd; padding: 4px 8px; }
+  table.summary thead th { background: #14304f; color: #fff; text-align: left; }
+  table.summary tfoot td { background: #e8eef4; font-weight: 700; }
+  .pname { max-width: 460px; }
+  .amt { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .num { text-align: right; }
+  .date { white-space: nowrap; }
+  .neg { color: #b00020; }
+  .memo { max-width: 240px; }
+  tr.totals td { background: #e8eef4; font-weight: 700; border-top: 1.5px solid #14304f; }
+  .empty { padding: 40px; text-align: center; color: #888; font-size: 14px; }
+
+  /* upload modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal-bg.show { display: flex; }
+  .modal { background: #fff; border-radius: 8px; padding: 22px; width: 460px; max-width: 92vw; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+  .modal h2 { margin: 0 0 4px; }
+  .modal p { color: #555; font-size: 12px; margin: 0 0 14px; }
+  .modal .row { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+  .modal label { font-size: 11px; color: #444; font-weight: 600; }
+  .modal input { font: inherit; padding: 7px 9px; border: 1px solid #c3ccd6; border-radius: 5px; }
+  .drop { border: 2px dashed #b8c4d2; border-radius: 6px; padding: 18px; text-align: center; color: #6b7a89; cursor: pointer; }
+  .drop.hot { border-color: #b8860b; background: #fff8e9; color: #14304f; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+  .modal .msg { font-size: 12px; min-height: 16px; }
+
+  @media print {
+    .toolbar, .summary-strip, .modal-bg { display: none !important; }
+    body { background: #fff; }
+    .page { margin: 0; max-width: none; padding: 0; }
+    .dimension { border: 0; border-radius: 0; padding: 0; page-break-before: always; }
+    .dimension:first-child { page-break-before: avoid; }
+    table.soa thead th { position: static; }
+  }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>Statement of Account</h1>
+    <div class="field">
+      <label>Cost dimension</label>
+      <div class="dims" id="dims"></div>
+    </div>
+    <div class="field">
+      <label>Project name contains</label>
+      <input id="proj" list="projlist" placeholder="e.g. Hornet, Yard, مشروع" size="24" autocomplete="off">
+      <datalist id="projlist"></datalist>
+    </div>
+    <div class="field"><label>From date</label><input id="from" type="date"></div>
+    <div class="field"><label>To date</label><input id="to" type="date"></div>
+    <button class="btn ghost" id="reset">Reset</button>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="uploadBtn">⬆ Upload Excel</button>
+    <button class="btn" id="print">⤓ Export PDF</button>
+  </div>
+
+  <div class="summary-strip" id="summary"><span class="status" id="status">Loading…</span></div>
+  <div class="page" id="report"></div>
+
+  <!-- Upload modal -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <h2>Upload cost-dimension Excel</h2>
+      <p>The file name decides the dimension (e.g. <em>…Material.xlsx</em> → Material). Re-uploading a dimension replaces its data.</p>
+      <div class="row">
+        <label>Excel file (.xlsx)</label>
+        <div class="drop" id="drop">Drop .xlsx here, or click to choose</div>
+        <input id="file" type="file" accept=".xlsx" style="display:none">
+      </div>
+      <div class="row">
+        <label>Upload key</label>
+        <input id="key" type="password" placeholder="upload key" autocomplete="off">
+      </div>
+      <div class="msg" id="msg"></div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="cancelUpload">Cancel</button>
+        <button class="btn" id="doUpload" disabled>Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+  (function () {
+    const cfg = window.SUPABASE_CONFIG;
+    const sb = window.supabase.createClient(cfg.url, cfg.anonKey);
+
+    const fmt = n => (n < 0 ? '(' : '') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + (n < 0 ? ')' : '');
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const dateToTs = v => v ? parseInt(v.replace(/-/g, ''), 10) : null;
+    const tsToInput = ts => { const s = String(ts); return s.length === 8 ? s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8) : ''; };
+    const setStatus = (txt, cls) => { const el = document.getElementById('status'); el.textContent = txt; el.className = 'status' + (cls ? ' ' + cls : ''); };
+
+    let DATA = { dimensions: [] };   // { dimensions: [{name, account, from, to, projects:[{name, txns:[]}]}] }
+
+    // ---------- load from Supabase ----------
+    async function loadData() {
+      setStatus('Loading from Supabase…');
+      const dims = await sb.from('dimensions').select('*').order('sort_order', { ascending: true });
+      if (dims.error) { setStatus('Load error: ' + dims.error.message, 'err'); return; }
+
+      // paginate transactions (1000-row cap per request)
+      const all = [];
+      for (let from = 0; ; from += 1000) {
+        const page = await sb.from('transactions').select('*')
+          .order('cost_dimension', { ascending: true }).order('project', { ascending: true }).order('seq', { ascending: true })
+          .range(from, from + 999);
+        if (page.error) { setStatus('Load error: ' + page.error.message, 'err'); return; }
+        all.push(...page.data);
+        if (page.data.length < 1000) break;
+      }
+
+      // reshape into dimensions -> projects -> txns
+      const dimOrder = new Map((dims.data || []).map(d => [d.name, d]));
+      const byDim = new Map();
+      for (const r of all) {
+        if (!byDim.has(r.cost_dimension)) byDim.set(r.cost_dimension, new Map());
+        const projs = byDim.get(r.cost_dimension);
+        if (!projs.has(r.project)) projs.set(r.project, []);
+        projs.get(r.project).push({
+          date: r.txn_date ? r.txn_date.split('-').reverse().join('/') : '', ts: r.ts,
+          type: r.voucher_type, no: r.voucher_no, ref: r.ref_no, memo: r.memo,
+          debit: Number(r.debit), credit: Number(r.credit),
+        });
+      }
+      const dimensions = [...byDim.entries()].map(([name, projs]) => {
+        const meta = dimOrder.get(name) || {};
+        return {
+          name, order: meta.sort_order ?? 99, account: meta.account || '', from: meta.period_from || '', to: meta.period_to || '',
+          projects: [...projs.entries()].map(([pn, txns]) => ({ name: pn, txns }))
+            .sort((a, b) => b.txns.length - a.txns.length),
+        };
+      }).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+
+      DATA = { dimensions };
+      buildControls();
+      render();
+      const tx = dimensions.reduce((s, d) => s + d.projects.reduce((a, p) => a + p.txns.length, 0), 0);
+      if (!dimensions.length) setStatus('No data yet — use “Upload Excel” to add a cost dimension.', '');
+    }
+
+    // ---------- filter controls ----------
+    function buildControls() {
+      const allDims = DATA.dimensions.map(d => d.name);
+      document.getElementById('dims').innerHTML = allDims.length
+        ? allDims.map(n => `<label><input type="checkbox" class="dimchk" value="${esc(n)}" checked> ${esc(n)}</label>`).join('')
+        : '<span style="color:#aebfd2">none</span>';
+      const projNames = [...new Set(DATA.dimensions.flatMap(d => d.projects.map(p => p.name)))].sort();
+      document.getElementById('projlist').innerHTML = projNames.map(n => `<option value="${esc(n)}">`).join('');
+      let minTs = Infinity, maxTs = -Infinity;
+      DATA.dimensions.forEach(d => d.projects.forEach(p => p.txns.forEach(t => { if (t.ts) { minTs = Math.min(minTs, t.ts); maxTs = Math.max(maxTs, t.ts); } })));
+      const f = document.getElementById('from'), t = document.getElementById('to');
+      if (isFinite(minTs)) { f.min = t.min = tsToInput(minTs); f.max = t.max = tsToInput(maxTs); }
+      document.querySelectorAll('.dimchk').forEach(c => c.addEventListener('change', render));
+    }
+
+    function currentFilters() {
+      return {
+        dims: new Set([...document.querySelectorAll('.dimchk:checked')].map(c => c.value)),
+        q: document.getElementById('proj').value.trim().toLowerCase(),
+        from: dateToTs(document.getElementById('from').value),
+        to: dateToTs(document.getElementById('to').value),
+      };
+    }
+
+    // ---------- render ----------
+    function render() {
+      const { dims, q, from, to } = currentFilters();
+      let gD = 0, gC = 0, gT = 0, gP = 0;
+      const out = [];
+
+      DATA.dimensions.forEach(d => {
+        if (!dims.has(d.name)) return;
+        const projHtml = [], summaryRows = [];
+        let dD = 0, dC = 0, dT = 0;
+
+        d.projects.forEach(p => {
+          if (q && !p.name.toLowerCase().includes(q)) return;
+          const txns = p.txns.filter(t => (from == null || t.ts >= from) && (to == null || t.ts <= to));
+          if (!txns.length) return;
+          let bal = 0, td = 0, tc = 0;
+          const rows = txns.map(t => {
+            bal += t.debit - t.credit; td += t.debit; tc += t.credit;
+            return `<tr><td class="date">${esc(t.date)}</td><td dir="auto">${esc(t.type)}</td>
+              <td class="num">${esc(t.no)}</td><td dir="auto">${esc(t.ref)}</td><td dir="auto" class="memo">${esc(t.memo)}</td>
+              <td class="amt">${t.debit ? fmt(t.debit) : ''}</td><td class="amt">${t.credit ? fmt(t.credit) : ''}</td>
+              <td class="amt ${bal < 0 ? 'neg' : ''}">${fmt(bal)}</td></tr>`;
+          }).join('');
+          const net = td - tc;
+          dD += td; dC += tc; dT += txns.length;
+          const idx = summaryRows.length + 1;
+          summaryRows.push(`<tr><td class="num">${idx}</td><td dir="auto" class="pname">${esc(p.name)}</td>
+            <td class="num">${txns.length}</td><td class="amt">${fmt(td)}</td><td class="amt">${fmt(tc)}</td>
+            <td class="amt ${net < 0 ? 'neg' : ''}">${fmt(net)}</td></tr>`);
+          projHtml.push(`<section class="project">
+            <h3><span class="pidx">${esc(d.name)} · ${idx}.</span> <span dir="auto">${esc(p.name)}</span></h3>
+            <div class="soa-label">Statement of Account</div>
+            <table class="soa">
+              <thead><tr><th>Date</th><th>Voucher Type</th><th>No</th><th>Ref No.</th><th>Memo</th>
+                <th class="amt">Debit</th><th class="amt">Credit</th><th class="amt">Balance</th></tr></thead>
+              <tbody>${rows}</tbody>
+              <tfoot><tr class="totals"><td colspan="5">Total — ${txns.length} transaction(s)</td>
+                <td class="amt">${fmt(td)}</td><td class="amt">${fmt(tc)}</td>
+                <td class="amt ${net < 0 ? 'neg' : ''}">${fmt(net)}</td></tr></tfoot>
+            </table></section>`);
+        });
+
+        if (!summaryRows.length) return;
+        gD += dD; gC += dC; gT += dT; gP += summaryRows.length;
+        out.push(`<div class="dimension">
+          <h1 class="dimtitle">${esc(d.name)}</h1>
+          <div class="meta2"><span>Account: ${esc(d.account)}</span><span>Period: ${esc(d.from)} – ${esc(d.to)}</span><span>Projects: ${summaryRows.length}</span></div>
+          <h2>Projects Summary</h2>
+          <table class="summary">
+            <thead><tr><th>#</th><th>Project</th><th class="num">Txns</th>
+              <th class="amt">Total Debit</th><th class="amt">Total Credit</th><th class="amt">Net Balance</th></tr></thead>
+            <tbody>${summaryRows.join('')}</tbody>
+            <tfoot><tr><td colspan="2">${esc(d.name)} Total</td><td class="num">${dT}</td>
+              <td class="amt">${fmt(dD)}</td><td class="amt">${fmt(dC)}</td>
+              <td class="amt ${dD - dC < 0 ? 'neg' : ''}">${fmt(dD - dC)}</td></tr></tfoot>
+          </table>
+          ${projHtml.join('')}
+        </div>`);
+      });
+
+      document.getElementById('report').innerHTML = out.length ? out.join('') :
+        (DATA.dimensions.length ? '<div class="empty">No transactions match the current filters.</div>' : '');
+      setStatus(
+        `Cost dimensions: ${[...dims].length} · Projects: ${gP} · Transactions: ${gT.toLocaleString()} · ` +
+        `Debit: ${fmt(gD)} · Credit: ${fmt(gC)} · Net: ${fmt(gD - gC)}`,
+        DATA.dimensions.length ? 'ok' : '');
+    }
+
+    // ---------- in-browser Excel parsing (mirrors generate-report.cjs) ----------
+    const DIMS = [{ key: 'material', name: 'Material' }, { key: 'labor', name: 'Labor', alt: ['labour'] },
+                  { key: 'equipment', name: 'Equipment' }, { key: 'overhead', name: 'Overhead' }];
+    function dimensionFromName(fname) {
+      const low = fname.toLowerCase().replace(/\.xlsx$/, '');
+      for (let i = 0; i < DIMS.length; i++) { const d = DIMS[i];
+        if (low.includes(d.key) || (d.alt || []).some(a => low.includes(a))) return { name: d.name, order: i }; }
+      return { name: fname.replace(/\.xlsx$/i, ''), order: DIMS.length };
+    }
+    const numv = s => { s = String(s).trim().replace(/,/g, ''); if (!s) return 0;
+      if (s.startsWith('(') && s.endsWith(')')) return -(parseFloat(s.replace(/[()]/g, '')) || 0); return parseFloat(s) || 0; };
+    function excelDateDMY(v) {
+      if (v === '' || v == null) return '';
+      if (typeof v === 'number') { const d = XLSX.SSF.parse_date_code(v); if (!d) return String(v);
+        const p = n => String(n).padStart(2, '0'); return `${p(d.d)}/${p(d.m)}/${d.y}`; }
+      return String(v);
+    }
+    const tsFromDMY = s => { const m = String(s).match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? parseInt(m[3]+m[2]+m[1], 10) : 0; };
+    const isoFromDMY = s => { const m = String(s).match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? `${m[3]}-${m[2]}-${m[1]}` : null; };
+
+    function parseWorkbook(fname, wb) {
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+      const LABELS = { 'account name': 'account', 'from date': 'from', 'to date': 'to' };
+      const meta = {}; let hdr = -1;
+      for (let i = 0; i < rows.length; i++) {
+        const cells = rows[i].map(c => String(c).trim());
+        cells.forEach((c, j) => { const key = LABELS[c.toLowerCase()];
+          if (key && meta[key] === undefined) { const idx = cells.slice(j + 1).findIndex(x => x !== '');
+            if (idx >= 0) { const raw = rows[i][j + 1 + idx]; meta[key] = /date/i.test(c) ? excelDateDMY(raw) : String(raw).trim(); } } });
+        if (cells.includes('Date') && cells.includes('Voucher Type')) { hdr = i; break; }
+      }
+      if (hdr < 0) throw new Error('No transaction table header (Date / Voucher Type) found.');
+      const col = {}; rows[hdr].forEach((c, j) => { const n = String(c).trim().toLowerCase().replace(/\.$/, ''); if (n && !(n in col)) col[n] = j; });
+      const ix = { date: col['date'] ?? 0, type: col['voucher type'] ?? 1, no: col['no'] ?? 2, cc: col['costcenter'] ?? 3,
+                   ref: col['ref no'] ?? 4, memo: col['memo'] ?? 5, debit: col['debit'] ?? 6, credit: col['credit'] ?? 7 };
+      const out = [];
+      for (let i = hdr + 1; i < rows.length; i++) {
+        const r = rows[i]; const proj = String(r[ix.cc]).trim();
+        if (String(r[ix.memo]).trim() === 'Transactions') continue;
+        if (!proj) continue;
+        const dmy = excelDateDMY(r[ix.date]);
+        out.push({ seq: out.length, project: proj, date: dmy, ts: tsFromDMY(dmy), iso: isoFromDMY(dmy),
+          type: String(r[ix.type]).trim(), no: String(r[ix.no]).trim(), ref: String(r[ix.ref]).trim(),
+          memo: String(r[ix.memo]).trim(), debit: numv(r[ix.debit]), credit: numv(r[ix.credit]) });
+      }
+      return { meta, rows: out };
+    }
+
+    // ---------- upload flow ----------
+    const modalBg = document.getElementById('modalBg'), fileInput = document.getElementById('file'),
+          drop = document.getElementById('drop'), keyInput = document.getElementById('key'),
+          doUpload = document.getElementById('doUpload'), msg = document.getElementById('msg');
+    let picked = null;
+
+    function openModal() { msg.textContent = ''; modalBg.classList.add('show'); }
+    function closeModal() { modalBg.classList.remove('show'); picked = null; fileInput.value = ''; drop.textContent = 'Drop .xlsx here, or click to choose'; refreshUploadBtn(); }
+    function refreshUploadBtn() { doUpload.disabled = !(picked && keyInput.value.trim()); }
+    function setPicked(f) { picked = f; drop.textContent = f ? f.name : 'Drop .xlsx here, or click to choose'; refreshUploadBtn(); }
+
+    document.getElementById('uploadBtn').addEventListener('click', openModal);
+    document.getElementById('cancelUpload').addEventListener('click', closeModal);
+    modalBg.addEventListener('click', e => { if (e.target === modalBg) closeModal(); });
+    drop.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', () => setPicked(fileInput.files[0] || null));
+    keyInput.addEventListener('input', refreshUploadBtn);
+    ['dragover', 'dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('hot'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('hot'); }));
+    drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) setPicked(f); });
+
+    doUpload.addEventListener('click', async () => {
+      if (!picked) return;
+      doUpload.disabled = true; msg.style.color = '#555'; msg.textContent = 'Parsing…';
+      try {
+        const buf = await picked.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const { meta, rows } = parseWorkbook(picked.name, wb);
+        const dim = dimensionFromName(picked.name);
+        msg.textContent = `Parsed ${rows.length} rows → ${dim.name}. Uploading…`;
+        const res = await fetch(cfg.ingestUrl, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': cfg.anonKey },
+          body: JSON.stringify({ secret: keyInput.value.trim(), dimension: dim.name, sort_order: dim.order,
+            account: meta.account || '', from: meta.from || '', to: meta.to || '', rows }),
+        });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
+        msg.style.color = '#1a7f37'; msg.textContent = `Saved ${body.inserted} rows to ${body.dimension}.`;
+        await loadData();
+        setTimeout(closeModal, 900);
+      } catch (e) {
+        msg.style.color = '#b00020'; msg.textContent = 'Failed: ' + e.message; doUpload.disabled = false;
+      }
+    });
+
+    // ---------- toolbar events ----------
+    let t = null;
+    document.getElementById('proj').addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 180); });
+    ['from', 'to'].forEach(id => document.getElementById(id).addEventListener('change', render));
+    document.getElementById('reset').addEventListener('click', () => {
+      document.querySelectorAll('.dimchk').forEach(c => c.checked = true);
+      document.getElementById('proj').value = ''; document.getElementById('from').value = ''; document.getElementById('to').value = '';
+      render();
+    });
+    document.getElementById('print').addEventListener('click', () => window.print());
+
+    loadData();
+  })();
+  </script>
+</body>
+</html>

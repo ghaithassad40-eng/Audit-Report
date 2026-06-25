@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Financial data — NEVER commit (this is a public repo)
+inputs/
+*.xlsx
+*.pdf
+report-data.js
+report.html
+
+# Local env / secrets
+.env
+.env.local
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
