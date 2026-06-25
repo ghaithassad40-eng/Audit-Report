@@ -433,6 +433,7 @@ function applyConfig(C) {
   });
 
   document.getElementById('print').addEventListener('click', () => window.print());
+  window.addEventListener('beforeprint', () => { try { document.getElementById('printDate').textContent = 'Printed: ' + new Date().toLocaleDateString('en-GB'); } catch (e) {} });
 
   // ---------- admin ----------
   const adminBg = document.getElementById('adminBg'), adminKey = document.getElementById('adminKey'),
