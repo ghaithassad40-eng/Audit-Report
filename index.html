@@ -89,8 +89,13 @@
   .login .tab { flex: 1; padding: 8px; border: 1px solid #c3ccd6; background: #f4f7fa; color: #21456b; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
   .login .tab.active { background: #14304f; color: #fff; border-color: #14304f; }
 
+  .print-only { display: none; }
+  #printHeader h1 { font-size: 18px; color: #14304f; margin: 0 0 4px; }
+  #printHeader .pf { font-size: 11px; color: #444; margin-bottom: 2px; }
+
   @media print {
     .toolbar, .summary-strip, .modal-bg, .login-bg { display: none !important; }
+    .print-only { display: block; margin-bottom: 12px; }
     body { background: #fff; }
     .page { margin: 0; max-width: none; padding: 0; }
     .dimension { border: 0; border-radius: 0; padding: 0; page-break-before: always; }
@@ -184,8 +189,16 @@
     </div>
     <div class="field">
       <label>Project name contains</label>
-      <input id="proj" list="projlist" placeholder="e.g. Hornet, Yard, مشروع" size="24" autocomplete="off">
+      <input id="proj" list="projlist" placeholder="e.g. Hornet, Yard, مشروع" size="22" autocomplete="off">
       <datalist id="projlist"></datalist>
+    </div>
+    <div class="field">
+      <label>Voucher No</label>
+      <input id="vno" placeholder="e.g. 645, 1057" size="12" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Search (memo / ref / type)</label>
+      <input id="search" placeholder="any text" size="16" autocomplete="off">
     </div>
     <div class="field"><label>From date</label><input id="from" type="date"></div>
     <div class="field"><label>To date</label><input id="to" type="date"></div>
@@ -193,12 +206,15 @@
     <div class="spacer"></div>
     <button class="btn ghost" id="uploadBtn">⬆ Upload Excel</button>
     <button class="btn ghost" id="adminBtn" title="Manage approved users">⚙ Users</button>
-    <button class="btn" id="print">⤓ Export PDF</button>
+    <button class="btn" id="print">🖨 Print / PDF</button>
     <button class="btn ghost" id="logout" title="Sign out">⎋ Sign out</button>
   </div>
 
   <div class="summary-strip" id="summary"><span class="status" id="status">Loading…</span></div>
-  <div class="page" id="report"></div>
+  <div class="page">
+    <div id="printHeader" class="print-only"></div>
+    <div id="report"></div>
+  </div>
 
   <!-- Upload modal -->
   <div class="modal-bg" id="modalBg">
@@ -295,14 +311,26 @@
       return {
         dims: new Set([...document.querySelectorAll('.dimchk:checked')].map(c => c.value)),
         q: document.getElementById('proj').value.trim().toLowerCase(),
+        nos: document.getElementById('vno').value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean),
+        search: document.getElementById('search').value.trim().toLowerCase(),
         from: dateToTs(document.getElementById('from').value),
         to: dateToTs(document.getElementById('to').value),
       };
     }
 
+    function filtersSummary(f, gP, gT, net) {
+      const parts = ['Cost dimensions: ' + ([...f.dims].join(', ') || 'none')];
+      if (f.q) parts.push('Project contains: "' + f.q + '"');
+      if (f.nos.length) parts.push('Voucher No: ' + f.nos.join(', '));
+      if (f.search) parts.push('Search: "' + f.search + '"');
+      if (f.from || f.to) parts.push('Dates: ' + (f.from ? tsToInput(f.from) : '…') + ' → ' + (f.to ? tsToInput(f.to) : '…'));
+      return parts.join('  ·  ') + `  ·  Projects: ${gP} · Transactions: ${gT} · Net: ${net}`;
+    }
+
     // ---------- render ----------
     function render() {
-      const { dims, q, from, to } = currentFilters();
+      const f = currentFilters();
+      const { dims, q, nos, search, from, to } = f;
       let gD = 0, gC = 0, gT = 0, gP = 0;
       const out = [];
 
@@ -313,7 +341,10 @@
 
         d.projects.forEach(p => {
           if (q && !p.name.toLowerCase().includes(q)) return;
-          const txns = p.txns.filter(t => (from == null || t.ts >= from) && (to == null || t.ts <= to));
+          const txns = p.txns.filter(t =>
+            (from == null || t.ts >= from) && (to == null || t.ts <= to) &&
+            (!nos.length || nos.includes(String(t.no))) &&
+            (!search || (t.memo + ' ' + t.ref + ' ' + t.type + ' ' + t.no).toLowerCase().includes(search)));
           if (!txns.length) return;
           let bal = 0, td = 0, tc = 0;
           const rows = txns.map(t => {
@@ -366,6 +397,11 @@
         `Cost dimensions: ${[...dims].length} · Projects: ${gP} · Transactions: ${gT.toLocaleString()} · ` +
         `Debit: ${fmt(gD)} · Credit: ${fmt(gC)} · Net: ${fmt(gD - gC)}`,
         DATA.dimensions.length ? 'ok' : '');
+
+      // print-only header documenting the active filters + totals
+      document.getElementById('printHeader').innerHTML =
+        '<h1>Statement of Account</h1>' +
+        '<div class="pf">' + esc(filtersSummary(f, gP, gT.toLocaleString(), fmt(gD - gC))) + '</div>';
     }
 
     // ---------- in-browser Excel parsing (mirrors generate-report.cjs) ----------
@@ -478,11 +514,12 @@
 
     // ---------- toolbar events ----------
     let t = null;
-    document.getElementById('proj').addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 180); });
+    const deb = () => { clearTimeout(t); t = setTimeout(render, 180); };
+    ['proj', 'vno', 'search'].forEach(id => document.getElementById(id).addEventListener('input', deb));
     ['from', 'to'].forEach(id => document.getElementById(id).addEventListener('change', render));
     document.getElementById('reset').addEventListener('click', () => {
       document.querySelectorAll('.dimchk').forEach(c => c.checked = true);
-      document.getElementById('proj').value = ''; document.getElementById('from').value = ''; document.getElementById('to').value = '';
+      ['proj', 'vno', 'search', 'from', 'to'].forEach(id => document.getElementById(id).value = '');
       render();
     });
     document.getElementById('print').addEventListener('click', () => window.print());
