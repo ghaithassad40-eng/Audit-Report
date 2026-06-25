@@ -216,16 +216,21 @@
   <div class="docwrap" id="docwrap">
     <div class="doc" id="doc">
       <div class="letterhead">
-        <img class="lh-logo" id="lhLogo" src="logo.png" alt="Arizona National">
-        <div class="lh-brand">
-          <div class="lh-ar" dir="rtl" data-t="brand.arabicName"></div>
-          <div class="lh-ar-sub" dir="rtl" data-t="brand.arabicSub"></div>
-          <div class="lh-en" data-t="brand.englishName"></div>
-          <div class="lh-en-sub" data-t="brand.englishSub"></div>
+        <div class="lh-logo-block">
+          <img class="lh-logo" id="lhLogo" src="logo.png" alt="Arizona National">
+          <div class="lh-brand">
+            <div class="lh-ar" dir="rtl" data-t="brand.arabicName"></div>
+            <div class="lh-ar-sub" dir="rtl" data-t="brand.arabicSub"></div>
+            <div class="lh-en" data-t="brand.englishName"></div>
+            <div class="lh-en-sub" data-t="brand.englishSub"></div>
+          </div>
+        </div>
+        <div class="lh-titles">
+          <div class="lh-company" data-t="brand.companyFull"></div>
+          <div class="lh-doctype" data-t="report.documentTitle"></div>
         </div>
       </div>
-      <div class="lh-report-title" data-t="report.title"></div>
-      <div class="doc-meta" id="docMeta"></div>
+      <table class="doc-meta-tbl" id="docMeta"></table>
       <div id="printHeader" class="print-only"></div>
       <div id="report"></div>
       <div class="print-footer print-only">

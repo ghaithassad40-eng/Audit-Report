@@ -230,11 +230,18 @@ function applyConfig(C) {
     setStatus('');
 
     const m0 = DATA.dimensions[0] || {};
+    const HD = CONFIG.headerDefaults || {};
+    const metaRows = [
+      [DM.accountName, m0.account || ''],
+      [DM.fromDate, m0.from || ''],
+      [DM.toDate, m0.to || ''],
+      [DM.mainCostCenter, HD.mainCostCenter || ''],
+      [DM.costCenter, HD.costCenter || ''],
+      [DM.branch, HD.branch || ''],
+      [DM.targetMoves, HD.targetMoves || ''],
+    ];
     document.getElementById('docMeta').innerHTML =
-      `<b>${esc(DM.accountName)}</b><span>${esc(m0.account || '')}</span>` +
-      `<b>${esc(DM.fromDate)}</b><span>${esc(m0.from || '')}</span>` +
-      `<b>${esc(DM.toDate)}</b><span>${esc(m0.to || '')}</span>` +
-      `<b>${esc(DM.projects)}</b><span>${gP}</span>`;
+      metaRows.map(([l, v]) => `<tr><td class="lbl">${esc(l)}</td><td>${esc(v)}</td></tr>`).join('');
 
     document.getElementById('printHeader').innerHTML =
       '<h1>' + esc(MISC.statementOfAccount) + '</h1><div class="pf">' + esc(filtersSummary(f, gP, gT.toLocaleString(), fmt(gD - gC))) + '</div>';

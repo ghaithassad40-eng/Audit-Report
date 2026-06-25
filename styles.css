@@ -141,16 +141,20 @@ body { font-family: var(--font); color: var(--ink); font-size: 13px; margin: 0; 
 /* ---------- document ---------- */
 .docwrap { margin: 0 22px 40px; background: #e9edf1; border: 1px solid var(--border-soft); border-top: 0; padding: 20px; height: 72vh; overflow: auto; }
 .doc { background: var(--surface); max-width: 1000px; margin: 0 auto; padding: 30px 34px; box-shadow: 0 2px 14px rgba(20,40,70,.12); transform-origin: top center; }
-.letterhead { display: flex; align-items: center; gap: 24px; border-bottom: 3px solid var(--navy); padding-bottom: 12px; }
-.lh-logo { height: 96px; width: auto; flex: none; }
-.lh-brand { flex: 1; line-height: 1.18; }
-.lh-brand .lh-ar { font-size: 26px; font-weight: 800; color: #111; }
-.lh-brand .lh-ar-sub { font-size: 12px; color: #222; margin-bottom: 8px; }
-.lh-brand .lh-en { font-size: 27px; font-weight: 800; letter-spacing: 1px; color: #111; }
-.lh-brand .lh-en-sub { font-size: 14px; font-weight: 700; color: #222; }
-.lh-report-title { text-align: center; font-size: 15px; font-weight: 700; color: var(--navy); margin: 10px 0 16px; }
-.doc-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 16px; max-width: 540px; }
-.doc-meta b { color: var(--muted); font-weight: 600; }
+.letterhead { position: relative; text-align: center; padding-bottom: 10px; min-height: 96px; }
+.lh-logo-block { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 10px; text-align: left; }
+.lh-logo { height: 72px; width: auto; flex: none; }
+.lh-brand { line-height: 1.12; }
+.lh-brand .lh-ar { font-size: 15px; font-weight: 800; color: #111; }
+.lh-brand .lh-ar-sub { font-size: 8px; color: #222; margin-bottom: 3px; }
+.lh-brand .lh-en { font-size: 15px; font-weight: 800; letter-spacing: .5px; color: #111; }
+.lh-brand .lh-en-sub { font-size: 8px; font-weight: 700; color: #222; }
+.lh-titles { padding: 0 40px; }
+.lh-company { font-size: 28px; font-weight: 800; color: #111; line-height: 1.15; }
+.lh-doctype { font-size: 22px; font-weight: 700; color: #111; margin-top: 10px; }
+.doc-meta-tbl { width: 100%; border-collapse: collapse; font-size: 14px; margin: 18px 0; }
+.doc-meta-tbl td { padding: 7px 4px; border-bottom: 1px solid #cfd6dd; vertical-align: top; }
+.doc-meta-tbl td.lbl { width: 210px; color: #111; }
 
 /* ---------- report ---------- */
 .report { margin: 0 22px 60px; }
@@ -248,11 +252,12 @@ body.dark .vmenu, body.dark .ms-menu { background: #13203a; border-color: #283a5
   .docwrap { margin: 0; padding: 0; height: auto; overflow: visible; background: #fff; border: 0; }
   .doc { box-shadow: none; max-width: none; margin: 0; padding: 0; zoom: 1 !important; }
   .print-only { display: block; }
-  .letterhead { position: fixed; top: 5mm; left: 12mm; right: 12mm; margin: 0; padding-bottom: 3mm; background: #fff; }
-  .letterhead .lh-logo { height: 54px; }
-  .letterhead .lh-brand .lh-ar { font-size: 17px; }
-  .letterhead .lh-brand .lh-en { font-size: 18px; }
-  .letterhead .lh-brand .lh-ar-sub, .letterhead .lh-brand .lh-en-sub { font-size: 10px; }
+  .letterhead { position: fixed; top: 4mm; left: 12mm; right: 12mm; margin: 0; padding-bottom: 2mm; background: #fff; min-height: 0; }
+  .letterhead .lh-logo { height: 42px; }
+  .letterhead .lh-brand .lh-ar, .letterhead .lh-brand .lh-en { font-size: 10px; }
+  .letterhead .lh-brand .lh-ar-sub, .letterhead .lh-brand .lh-en-sub { font-size: 6px; }
+  .letterhead .lh-company { font-size: 16px; }
+  .letterhead .lh-doctype { font-size: 13px; margin-top: 3px; }
   .print-footer { display: flex !important; justify-content: space-between; align-items: center; position: fixed; left: 12mm; right: 12mm; bottom: 9mm; font-size: 10px; color: #555; border-top: 1px solid #c9d0d8; padding-top: 4px; }
   .dimension { border: 0; border-radius: 0; margin: 0; page-break-before: always; }
   .dimension:first-child { page-break-before: avoid; }
