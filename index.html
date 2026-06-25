@@ -142,11 +142,14 @@
   /* ---------- document ---------- */
   .docwrap { margin: 0 22px 40px; background: #e9edf1; border: 1px solid #e3e8ee; border-top: 0; padding: 20px; height: 72vh; overflow: auto; }
   .doc { background: #fff; max-width: 1000px; margin: 0 auto; padding: 30px 34px; box-shadow: 0 2px 14px rgba(20,40,70,.12); transform-origin: top center; }
-  .letterhead { display: flex; align-items: center; gap: 22px; border-bottom: 2px solid #14304f; padding-bottom: 14px; margin-bottom: 16px; }
-  .lh-logo { height: 86px; width: auto; flex: none; }
-  .lh-text { flex: 1; }
-  .lh-name { font-size: 19px; font-weight: 800; color: #14304f; }
-  .lh-title { font-size: 14px; font-weight: 700; color: #33415a; margin-top: 6px; }
+  .letterhead { display: flex; align-items: center; gap: 24px; border-bottom: 3px solid #14304f; padding-bottom: 12px; }
+  .lh-logo { height: 96px; width: auto; flex: none; }
+  .lh-brand { flex: 1; line-height: 1.18; }
+  .lh-brand .lh-ar { font-size: 26px; font-weight: 800; color: #111; }
+  .lh-brand .lh-ar-sub { font-size: 12px; color: #222; margin-bottom: 8px; }
+  .lh-brand .lh-en { font-size: 27px; font-weight: 800; letter-spacing: 1px; color: #111; }
+  .lh-brand .lh-en-sub { font-size: 14px; font-weight: 700; color: #222; }
+  .lh-report-title { text-align: center; font-size: 15px; font-weight: 700; color: #14304f; margin: 10px 0 16px; }
   .doc-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12.5px; color: #33415a; margin-bottom: 16px; max-width: 540px; }
   .doc-meta b { color: #5b6b7b; font-weight: 600; }
 
@@ -210,8 +213,10 @@
     .print-only { display: block; }
     /* letterhead repeats on every page as a running header */
     .letterhead { position: fixed; top: 5mm; left: 12mm; right: 12mm; margin: 0; padding-bottom: 3mm; background: #fff; }
-    .letterhead .lh-logo { height: 60px; }
-    .letterhead .lh-name { font-size: 16px; }
+    .letterhead .lh-logo { height: 54px; }
+    .letterhead .lh-brand .lh-ar { font-size: 17px; }
+    .letterhead .lh-brand .lh-en { font-size: 18px; }
+    .letterhead .lh-brand .lh-ar-sub, .letterhead .lh-brand .lh-en-sub { font-size: 10px; }
     /* footer with page number repeats at the bottom of every page */
     .print-footer { display: flex !important; justify-content: space-between; align-items: center; position: fixed; left: 12mm; right: 12mm; bottom: 9mm; font-size: 10px; color: #555; border-top: 1px solid #c9d0d8; padding-top: 4px; }
     .dimension { border: 0; border-radius: 0; margin: 0; page-break-before: always; }
@@ -436,11 +441,14 @@
     <div class="doc" id="doc">
       <div class="letterhead">
         <img class="lh-logo" src="logo.png" alt="Arizona National">
-        <div class="lh-text">
-          <div class="lh-name">Arizona National General Trading &amp; Contracting (W.L.L)</div>
-          <div class="lh-title">Detailed Statement by Cost Dimension</div>
+        <div class="lh-brand">
+          <div class="lh-ar" dir="rtl">أريزونا الوطنية</div>
+          <div class="lh-ar-sub" dir="rtl">للتجارة العامة والمقاولات ذ.م.م</div>
+          <div class="lh-en">ARIZONA NATIONAL</div>
+          <div class="lh-en-sub">General Trading &amp; Contracting Co. W.L.L</div>
         </div>
       </div>
+      <div class="lh-report-title">Detailed Statement by Cost Dimension</div>
       <div class="doc-meta" id="docMeta"></div>
       <div id="printHeader" class="print-only"></div>
       <div id="report"></div>
