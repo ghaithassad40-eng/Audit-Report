@@ -201,6 +201,14 @@
       <select id="vtype"><option value="">All types</option></select>
     </div>
     <div class="field">
+      <label>Side</label>
+      <select id="side">
+        <option value="">Debit &amp; Credit</option>
+        <option value="debit">Debit only</option>
+        <option value="credit">Credit only</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Search (memo / ref / type)</label>
       <input id="search" placeholder="any text" size="16" autocomplete="off">
     </div>
@@ -319,6 +327,7 @@
         q: document.getElementById('proj').value.trim().toLowerCase(),
         nos: document.getElementById('vno').value.split(',').map(s => s.trim()).filter(Boolean),
         vtype: document.getElementById('vtype').value,
+        side: document.getElementById('side').value,
         search: document.getElementById('search').value.trim().toLowerCase(),
         from: dateToTs(document.getElementById('from').value),
         to: dateToTs(document.getElementById('to').value),
@@ -347,6 +356,7 @@
       if (f.q) parts.push('Project contains: "' + f.q + '"');
       if (f.nos.length) parts.push('Voucher No: ' + f.nos.join(', '));
       if (f.vtype) parts.push('Voucher Type: ' + f.vtype);
+      if (f.side) parts.push('Side: ' + (f.side === 'debit' ? 'Debit' : 'Credit'));
       if (f.search) parts.push('Search: "' + f.search + '"');
       if (f.from || f.to) parts.push('Dates: ' + (f.from ? tsToInput(f.from) : '…') + ' → ' + (f.to ? tsToInput(f.to) : '…'));
       return parts.join('  ·  ') + `  ·  Projects: ${gP} · Transactions: ${gT} · Net: ${net}`;
@@ -355,7 +365,7 @@
     // ---------- render ----------
     function render() {
       const f = currentFilters();
-      const { dims, q, nos, vtype, search, from, to } = f;
+      const { dims, q, nos, vtype, side, search, from, to } = f;
       const noMatch = buildNoMatch(nos);
       let gD = 0, gC = 0, gT = 0, gP = 0;
       const out = [];
@@ -371,6 +381,7 @@
             (from == null || t.ts >= from) && (to == null || t.ts <= to) &&
             (!noMatch || noMatch(t.no)) &&
             (!vtype || t.type === vtype) &&
+            (!side || (side === 'debit' ? t.debit > 0 : t.credit > 0)) &&
             (!search || (t.memo + ' ' + t.ref + ' ' + t.type + ' ' + t.no).toLowerCase().includes(search)));
           if (!txns.length) return;
           let bal = 0, td = 0, tc = 0;
@@ -543,10 +554,10 @@
     let t = null;
     const deb = () => { clearTimeout(t); t = setTimeout(render, 180); };
     ['proj', 'vno', 'search'].forEach(id => document.getElementById(id).addEventListener('input', deb));
-    ['from', 'to', 'vtype'].forEach(id => document.getElementById(id).addEventListener('change', render));
+    ['from', 'to', 'vtype', 'side'].forEach(id => document.getElementById(id).addEventListener('change', render));
     document.getElementById('reset').addEventListener('click', () => {
       document.querySelectorAll('.dimchk').forEach(c => c.checked = true);
-      ['proj', 'vno', 'search', 'from', 'to', 'vtype'].forEach(id => document.getElementById(id).value = '');
+      ['proj', 'vno', 'search', 'from', 'to', 'vtype', 'side'].forEach(id => document.getElementById(id).value = '');
       render();
     });
     document.getElementById('print').addEventListener('click', () => window.print());
