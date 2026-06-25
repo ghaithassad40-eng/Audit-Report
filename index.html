@@ -241,26 +241,14 @@
     // ---------- load from Supabase ----------
     async function loadData() {
       setStatus('Loading from Supabase…');
-      const dims = await sb.from('dimensions').select('*').order('sort_order', { ascending: true });
-      if (dims.error) { setStatus('Load error: ' + dims.error.message, 'err'); return; }
-
-      // count rows, then fetch all 1000-row pages in parallel (much faster than sequential)
-      const head = await sb.from('transactions').select('id', { count: 'exact', head: true });
-      if (head.error) { setStatus('Load error: ' + head.error.message, 'err'); return; }
-      const totalRows = head.count || 0;
-      const PAGE = 1000, reqs = [];
-      for (let from = 0; from < totalRows; from += PAGE) {
-        reqs.push(sb.from('transactions').select('*')
-          .order('cost_dimension', { ascending: true }).order('project', { ascending: true }).order('seq', { ascending: true })
-          .range(from, from + PAGE - 1));
-      }
-      const pages = await Promise.all(reqs);
-      const bad = pages.find(p => p.error);
-      if (bad) { setStatus('Load error: ' + bad.error.message, 'err'); return; }
-      const all = pages.flatMap(p => p.data);
+      // One call returns { dimensions, transactions } as JSON — fast, no pagination/timeout.
+      const { data, error } = await sb.rpc('report_data');
+      if (error) { setStatus('Load error: ' + error.message, 'err'); return; }
+      const dimsData = (data && data.dimensions) || [];
+      const all = (data && data.transactions) || [];
 
       // reshape into dimensions -> projects -> txns
-      const dimOrder = new Map((dims.data || []).map(d => [d.name, d]));
+      const dimOrder = new Map(dimsData.map(d => [d.name, d]));
       const byDim = new Map();
       for (const r of all) {
         if (!byDim.has(r.cost_dimension)) byDim.set(r.cost_dimension, new Map());
