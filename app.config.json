@@ -1,0 +1,153 @@
+{
+  "supabase": {
+    "url": "https://vnbncldzstblofloysvq.supabase.co",
+    "anonKey": "sb_publishable_9W2NHz8Yo7SVZ_DVsIOP2w_itrZz-nB",
+    "functions": {
+      "ingest": "https://vnbncldzstblofloysvq.supabase.co/functions/v1/ingest",
+      "users": "https://vnbncldzstblofloysvq.supabase.co/functions/v1/users"
+    },
+    "rpc": { "report": "report_data", "access": "has_access" }
+  },
+
+  "report": {
+    "title": "Detailed Statement by Cost Dimension",
+    "subtitle": "View detailed financial transactions grouped by cost dimension.",
+    "exportFileName": "Detailed_Statement_by_Cost_Dimension"
+  },
+
+  "brand": {
+    "logo": "logo.png",
+    "topLogo": "AN",
+    "org": "Arizona National General Trading & Co…",
+    "currency": "🇰🇼 KWD",
+    "arabicName": "أريزونا الوطنية",
+    "arabicSub": "للتجارة العامة والمقاولات ذ.م.م",
+    "englishName": "ARIZONA NATIONAL",
+    "englishSub": "General Trading & Contracting Co. W.L.L",
+    "companyFull": "Arizona National General Trading & Contracting (W.L.L)"
+  },
+
+  "dimensions": [
+    { "key": "material", "name": "Direct Material" },
+    { "key": "labor", "name": "Direct Labor", "alt": ["labour"] },
+    { "key": "equipment", "name": "Equipment" },
+    { "key": "subcontractor", "name": "Subcontractor Works" },
+    { "key": "overhead", "name": "Overhead Costs" },
+    { "key": "revenue", "name": "Revenue" },
+    { "key": "accumulated", "name": "Accumulated Expenses" }
+  ],
+
+  "sides": [
+    { "value": "", "label": "Debit & Credit" },
+    { "value": "debit", "label": "Debit only" },
+    { "value": "credit", "label": "Credit only" }
+  ],
+
+  "tables": {
+    "projectsSummary": ["#", "Project", "Txns", "Total Debit", "Total Credit", "Net Balance"],
+    "statement": ["Date", "Voucher Type", "No", "Ref No.", "Memo", "Debit", "Credit", "Balance"],
+    "excel": ["Project", "Date", "Voucher Type", "No", "Ref No.", "Memo", "Debit", "Credit", "Balance"]
+  },
+
+  "docMeta": { "accountName": "Account Name", "fromDate": "From Date", "toDate": "To Date", "projects": "Projects", "period": "Period", "account": "Account" },
+
+  "misc": {
+    "allTypes": "All types",
+    "statementOfAccount": "Statement of Account",
+    "exportToExcel": "⬇ Export to Excel",
+    "projectsSummaryTitle": "Projects Summary",
+    "dropPrompt": "Drop .xlsx here, or click to choose",
+    "noneLabel": "none",
+    "selectedSuffix": "Selected"
+  },
+
+  "text": {
+    "buttons": {
+      "upload": "⬆ Upload",
+      "users": "👥 Users",
+      "signOut": "⤤ Sign out",
+      "reset": "↺ Reset",
+      "moreFilters": "⛛ More Filters ▾",
+      "applyFilters": "🔍 Apply Filters",
+      "saveAs": "💾 Save as ▾",
+      "print": "🖨 Print",
+      "findNext": "Find | Next",
+      "adminLink": "⚙ Admin — manage approved users"
+    },
+    "labels": {
+      "costDimension": "Cost Dimension",
+      "project": "Project Name Contains",
+      "voucherNo": "Voucher No (List or Range)",
+      "voucherType": "Voucher Type",
+      "side": "Side",
+      "search": "Search (Memo / Ref / Type)",
+      "fromDate": "From Date",
+      "toDate": "To Date"
+    },
+    "summary": {
+      "dimensions": "Cost dimensions",
+      "projects": "Projects",
+      "transactions": "Transactions",
+      "debit": "Debit",
+      "credit": "Credit",
+      "net": "Net"
+    },
+    "save": { "pdf": "PDF", "excel": "Excel", "word": "Word" },
+    "login": {
+      "title": "Statement of Account",
+      "subtitle": "Sign in to view the reports.",
+      "tabPw": "Username & password",
+      "tabPhone": "Phone code",
+      "username": "Username",
+      "password": "Password",
+      "signIn": "Sign in",
+      "phoneLabel": "Phone number",
+      "phoneHint": "Include your country code (e.g. +965 for Kuwait).",
+      "sendCode": "Send code",
+      "codeLabel": "Enter the 6-digit code",
+      "verify": "Verify & sign in",
+      "changeNumber": "← Use a different number"
+    },
+    "admin": {
+      "title": "Approved users",
+      "desc": "Add the phone numbers allowed to sign in. The name is just a label; the phone number grants access.",
+      "uploadKey": "Upload key",
+      "name": "Name",
+      "phone": "Phone (with country code)",
+      "add": "+ Add",
+      "loginsTitle": "Username / password accounts",
+      "loginsDesc": "Create logins for people who don't use phone codes.",
+      "username": "Username",
+      "password": "Password",
+      "nameOptional": "Name (optional)",
+      "create": "+ Create",
+      "close": "Close",
+      "unlock": "Unlock"
+    },
+    "upload": {
+      "title": "Upload cost-dimension Excel",
+      "desc": "The dimension is read from the file's “Cost dimesion” header or its name. Re-uploading a dimension replaces its data.",
+      "fileLabel": "Excel file (.xlsx)",
+      "cancel": "Cancel",
+      "submit": "Upload"
+    },
+    "placeholders": {
+      "project": "e.g. Hornet, Yard, مشروع",
+      "voucherNo": "e.g. 645, 1057, 700-720",
+      "search": "any text",
+      "reportSearch": "Search for a report...",
+      "find": "Find",
+      "uploadKey": "upload key",
+      "newName": "e.g. Ghaith",
+      "newPhone": "+96597207194",
+      "newUser": "e.g. ahmad",
+      "newPass": "min 6 chars",
+      "newUserName": "Ahmad",
+      "username": "username",
+      "password": "password",
+      "phone": "+965 5000 0000",
+      "code": "••••••"
+    },
+    "tooltips": { "costDimension": "Pick which cost dimensions to include" }
+  }
+}

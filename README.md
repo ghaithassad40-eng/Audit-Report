@@ -24,7 +24,9 @@ Browser (index.html)
 | File | Purpose |
 |------|---------|
 | `index.html` | The web app: loads from Supabase, in-browser upload, filters, PDF export |
-| `config.js` | Supabase URL + publishable (anon) key (safe to commit — see Security) |
+| `app.config.json` | All config: Supabase URL + publishable key, branding, cost dimensions, side options, and every UI string (safe to commit — see Security) |
+| `styles.css` | All styling, with the palette as `:root` CSS variables (design tokens) |
+| `app.js` | All client logic, fully config-driven (no hardcoded data/strings) |
 | `supabase/migrations/*.sql` | Schema, indexes, and RLS policies |
 | `supabase/functions/ingest/index.ts` | Edge Function that validates the upload key and replaces a dimension's rows |
 | `generate-report.cjs` | Optional **local** PDF generator (reads `./inputs/*.xlsx`, no backend needed) |
@@ -37,7 +39,7 @@ npm install
 npm run dev          # serves index.html at http://localhost:3000
 ```
 
-Or deploy `index.html` + `config.js` to any static host (GitHub Pages, Netlify, etc.) — it talks directly to Supabase.
+Or deploy the static files (`index.html`, `styles.css`, `app.js`, `app.config.json`, `logo.png`) to any static host (GitHub Pages, Netlify, etc.) — it talks directly to Supabase.
 
 ## Uploading data
 
