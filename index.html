@@ -197,6 +197,10 @@
       <input id="vno" placeholder="e.g. 645, 1057, 700-720" size="18" autocomplete="off">
     </div>
     <div class="field">
+      <label>Voucher Type</label>
+      <select id="vtype"><option value="">All types</option></select>
+    </div>
+    <div class="field">
       <label>Search (memo / ref / type)</label>
       <input id="search" placeholder="any text" size="16" autocomplete="off">
     </div>
@@ -300,6 +304,8 @@
         : '<span style="color:#aebfd2">none</span>';
       const projNames = [...new Set(DATA.dimensions.flatMap(d => d.projects.map(p => p.name)))].sort();
       document.getElementById('projlist').innerHTML = projNames.map(n => `<option value="${esc(n)}">`).join('');
+      const types = [...new Set(DATA.dimensions.flatMap(d => d.projects.flatMap(p => p.txns.map(t => t.type))))].filter(Boolean).sort();
+      document.getElementById('vtype').innerHTML = '<option value="">All types</option>' + types.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
       let minTs = Infinity, maxTs = -Infinity;
       DATA.dimensions.forEach(d => d.projects.forEach(p => p.txns.forEach(t => { if (t.ts) { minTs = Math.min(minTs, t.ts); maxTs = Math.max(maxTs, t.ts); } })));
       const f = document.getElementById('from'), t = document.getElementById('to');
@@ -312,6 +318,7 @@
         dims: new Set([...document.querySelectorAll('.dimchk:checked')].map(c => c.value)),
         q: document.getElementById('proj').value.trim().toLowerCase(),
         nos: document.getElementById('vno').value.split(',').map(s => s.trim()).filter(Boolean),
+        vtype: document.getElementById('vtype').value,
         search: document.getElementById('search').value.trim().toLowerCase(),
         from: dateToTs(document.getElementById('from').value),
         to: dateToTs(document.getElementById('to').value),
@@ -339,6 +346,7 @@
       const parts = ['Cost dimensions: ' + ([...f.dims].join(', ') || 'none')];
       if (f.q) parts.push('Project contains: "' + f.q + '"');
       if (f.nos.length) parts.push('Voucher No: ' + f.nos.join(', '));
+      if (f.vtype) parts.push('Voucher Type: ' + f.vtype);
       if (f.search) parts.push('Search: "' + f.search + '"');
       if (f.from || f.to) parts.push('Dates: ' + (f.from ? tsToInput(f.from) : '…') + ' → ' + (f.to ? tsToInput(f.to) : '…'));
       return parts.join('  ·  ') + `  ·  Projects: ${gP} · Transactions: ${gT} · Net: ${net}`;
@@ -347,7 +355,7 @@
     // ---------- render ----------
     function render() {
       const f = currentFilters();
-      const { dims, q, nos, search, from, to } = f;
+      const { dims, q, nos, vtype, search, from, to } = f;
       const noMatch = buildNoMatch(nos);
       let gD = 0, gC = 0, gT = 0, gP = 0;
       const out = [];
@@ -362,6 +370,7 @@
           const txns = p.txns.filter(t =>
             (from == null || t.ts >= from) && (to == null || t.ts <= to) &&
             (!noMatch || noMatch(t.no)) &&
+            (!vtype || t.type === vtype) &&
             (!search || (t.memo + ' ' + t.ref + ' ' + t.type + ' ' + t.no).toLowerCase().includes(search)));
           if (!txns.length) return;
           let bal = 0, td = 0, tc = 0;
@@ -534,10 +543,10 @@
     let t = null;
     const deb = () => { clearTimeout(t); t = setTimeout(render, 180); };
     ['proj', 'vno', 'search'].forEach(id => document.getElementById(id).addEventListener('input', deb));
-    ['from', 'to'].forEach(id => document.getElementById(id).addEventListener('change', render));
+    ['from', 'to', 'vtype'].forEach(id => document.getElementById(id).addEventListener('change', render));
     document.getElementById('reset').addEventListener('click', () => {
       document.querySelectorAll('.dimchk').forEach(c => c.checked = true);
-      ['proj', 'vno', 'search', 'from', 'to'].forEach(id => document.getElementById(id).value = '');
+      ['proj', 'vno', 'search', 'from', 'to', 'vtype'].forEach(id => document.getElementById(id).value = '');
       render();
     });
     document.getElementById('print').addEventListener('click', () => window.print());
