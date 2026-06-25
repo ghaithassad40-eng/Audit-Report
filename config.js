@@ -6,4 +6,5 @@ window.SUPABASE_CONFIG = {
   url: 'https://vnbncldzstblofloysvq.supabase.co',
   anonKey: 'sb_publishable_9W2NHz8Yo7SVZ_DVsIOP2w_itrZz-nB',
   ingestUrl: 'https://vnbncldzstblofloysvq.supabase.co/functions/v1/ingest',
+  usersUrl: 'https://vnbncldzstblofloysvq.supabase.co/functions/v1/users',
 };

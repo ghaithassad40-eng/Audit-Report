@@ -60,6 +60,7 @@
   /* upload modal */
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 50; }
   .modal-bg.show { display: flex; }
+  #adminBg { z-index: 120; }   /* must sit above the login overlay (z-index 100) */
   .modal { background: #fff; border-radius: 8px; padding: 22px; width: 460px; max-width: 92vw; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
   .modal h2 { margin: 0 0 4px; }
   .modal p { color: #555; font-size: 12px; margin: 0 0 14px; }
@@ -117,6 +118,32 @@
       </div>
 
       <div class="msg" id="login-msg"></div>
+      <button class="back" id="openAdmin" style="margin-top:18px">⚙ Admin — manage approved users</button>
+    </div>
+  </div>
+
+  <!-- Admin: manage approved users -->
+  <div class="modal-bg" id="adminBg">
+    <div class="modal" style="width:560px">
+      <h2>Approved users</h2>
+      <p>Add the phone numbers allowed to sign in. The name is just a label; the phone number grants access.</p>
+      <div class="row">
+        <label>Upload key</label>
+        <input id="adminKey" type="password" placeholder="upload key" autocomplete="off">
+      </div>
+      <div id="adminBody" style="display:none">
+        <div style="display:flex; gap:8px; align-items:flex-end; margin-bottom:10px;">
+          <div class="row" style="flex:1; margin:0;"><label>Name</label><input id="newLabel" placeholder="e.g. Ghaith"></div>
+          <div class="row" style="flex:1; margin:0;"><label>Phone (with country code)</label><input id="newPhone" type="tel" placeholder="+96597207194" value="+965"></div>
+          <button class="btn" id="addUser" style="white-space:nowrap">+ Add</button>
+        </div>
+        <table class="summary" id="userTable" style="font-size:12px"></table>
+      </div>
+      <div class="msg" id="admin-msg"></div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="closeAdmin">Close</button>
+        <button class="btn" id="unlockAdmin">Unlock</button>
+      </div>
     </div>
   </div>
 
@@ -136,6 +163,7 @@
     <button class="btn ghost" id="reset">Reset</button>
     <div class="spacer"></div>
     <button class="btn ghost" id="uploadBtn">⬆ Upload Excel</button>
+    <button class="btn ghost" id="adminBtn" title="Manage approved users">⚙ Users</button>
     <button class="btn" id="print">⤓ Export PDF</button>
     <button class="btn ghost" id="logout" title="Sign out">⎋ Sign out</button>
   </div>
@@ -423,6 +451,60 @@
       render();
     });
     document.getElementById('print').addEventListener('click', () => window.print());
+
+    // ---------- admin: manage approved users ----------
+    const adminBg = document.getElementById('adminBg');
+    const adminKey = document.getElementById('adminKey');
+    const adminBody = document.getElementById('adminBody');
+    const adminMsg = document.getElementById('admin-msg');
+    const userTable = document.getElementById('userTable');
+    const setAdminMsg = (t, err) => { adminMsg.textContent = t; adminMsg.style.color = err ? '#b00020' : '#1a7f37'; };
+
+    async function callUsers(action, extra) {
+      const res = await fetch(cfg.usersUrl, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': cfg.anonKey },
+        body: JSON.stringify({ secret: adminKey.value.trim(), action, ...extra }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
+      return body;
+    }
+
+    function renderUsers(users) {
+      if (!users.length) { userTable.innerHTML = '<tbody><tr><td style="color:#888">No approved users yet.</td></tr></tbody>'; return; }
+      userTable.innerHTML =
+        '<thead><tr><th>Name</th><th>Phone</th><th></th></tr></thead><tbody>' +
+        users.map(u => `<tr><td>${esc(u.label || '')}</td><td>+${esc(u.phone)}</td>
+          <td style="text-align:right"><button class="back" data-rm="${esc(u.phone)}" style="color:#b00020;margin:0">Remove</button></td></tr>`).join('') +
+        '</tbody>';
+      userTable.querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('Remove +' + b.dataset.rm + '?')) return;
+        try { await callUsers('remove', { phone: b.dataset.rm }); setAdminMsg('Removed.'); await refreshUsers(); }
+        catch (e) { setAdminMsg(e.message, true); }
+      }));
+    }
+    async function refreshUsers() { const { users } = await callUsers('list'); renderUsers(users); }
+
+    function openAdmin() { adminMsg.textContent = ''; adminBody.style.display = 'none'; adminBg.classList.add('show');
+      const saved = sessionStorage.getItem('adminKey'); if (saved) { adminKey.value = saved; } }
+    function closeAdmin() { adminBg.classList.remove('show'); }
+    document.getElementById('openAdmin').addEventListener('click', openAdmin);
+    document.getElementById('adminBtn').addEventListener('click', openAdmin);
+    document.getElementById('closeAdmin').addEventListener('click', closeAdmin);
+    adminBg.addEventListener('click', e => { if (e.target === adminBg) closeAdmin(); });
+    document.getElementById('unlockAdmin').addEventListener('click', async () => {
+      setAdminMsg('Checking…');
+      try { await refreshUsers(); adminBody.style.display = ''; sessionStorage.setItem('adminKey', adminKey.value.trim()); setAdminMsg('Unlocked.'); }
+      catch (e) { adminBody.style.display = 'none'; setAdminMsg(e.message, true); }
+    });
+    document.getElementById('addUser').addEventListener('click', async () => {
+      const label = document.getElementById('newLabel').value.trim();
+      const phone = document.getElementById('newPhone').value.trim();
+      setAdminMsg('Adding…');
+      try { const r = await callUsers('add', { phone, label }); setAdminMsg('Added +' + r.phone + (r.label ? ' (' + r.label + ')' : ''));
+        document.getElementById('newLabel').value = ''; document.getElementById('newPhone').value = '+965'; await refreshUsers(); }
+      catch (e) { setAdminMsg(e.message, true); }
+    });
 
     // ---------- auth (phone OTP) ----------
     const loginBg = document.getElementById('loginBg');

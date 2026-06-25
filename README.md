@@ -65,7 +65,9 @@ Each SMS costs money (billed by Twilio).
 
 ### Managing approved phone numbers
 
-Add/remove approved numbers in the Supabase SQL editor (digits only, country code, **no** `+`):
+**In the app (recommended):** click **⚙ Admin — manage approved users** on the login screen (or **⚙ Users** in the toolbar once signed in), enter the **upload key**, then add/remove users by name + phone. This calls the `users` Edge Function (service role, upload-key gated).
+
+**Or in the Supabase SQL editor** (digits only, country code, **no** `+`):
 
 ```sql
 insert into public.allowed_users (phone, label) values ('96550000000', 'Ghaith') on conflict do nothing;
