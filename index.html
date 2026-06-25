@@ -104,6 +104,62 @@
     .appbar .brand { font-size: 16px; }
   }
 
+  /* ---------- top chrome bar ---------- */
+  .topbar { display: flex; align-items: center; gap: 16px; background: #0e1d33; color: #e8eef6; padding: 9px 20px; position: sticky; top: 0; z-index: 30; }
+  .topbar .tb-left { display: flex; align-items: center; gap: 14px; }
+  .tb-logo { width: 32px; height: 32px; border-radius: 7px; background: linear-gradient(135deg, #15a34a, #0e9bb0); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 12px; letter-spacing: .5px; }
+  .topbar .org { background: #15263d; border: 1px solid #2a3e5c; color: #dbe6f3; font: inherit; font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 12px; max-width: 340px; }
+  .topbar .tb-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .topbar .cur { font-size: 13px; color: #cdd9e8; white-space: nowrap; }
+  .icon-btn { background: #15263d; border: 1px solid #2a3e5c; color: #ffd86b; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+  .b-ghost { background: transparent; border: 1px solid #2a3e5c; color: #dbe6f3; }
+  .b-ghost:hover { background: #15263d; }
+
+  /* ---------- page header ---------- */
+  .pagehead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 22px 6px; }
+  .page-title { font-size: 24px; font-weight: 800; color: #14304f; margin: 0; }
+  .page-sub { color: #6b7a89; font-size: 13px; margin-top: 3px; }
+  .report-search { position: relative; }
+  .report-search input { font: inherit; font-size: 13px; padding: 10px 36px 10px 14px; border: 1px solid #d7dee6; border-radius: 10px; width: 300px; max-width: 50vw; background: #fff; }
+  .report-search span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #9aa7b5; }
+
+  /* ---------- viewer toolbar ---------- */
+  .vtoolbar { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e3e8ee; margin: 0 22px; padding: 8px 14px; flex-wrap: wrap; }
+  .vnav { display: flex; align-items: center; gap: 4px; }
+  .vbtn { background: #fff; border: 1px solid #d7dee6; color: #33415a; border-radius: 7px; padding: 6px 9px; font: inherit; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .vbtn:hover { background: #f3f6fa; }
+  .vbtn.wide { font-weight: 600; }
+  .vpage { font-size: 12px; color: #51607a; padding: 0 6px; }
+  .vzoom, .vfind { font: inherit; font-size: 13px; padding: 6px 9px; border: 1px solid #d7dee6; border-radius: 7px; background: #fff; }
+  .vdrop { position: relative; }
+  .vmenu { position: absolute; top: calc(100% + 4px); left: 0; background: #fff; border: 1px solid #d7dee6; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 6px; display: none; z-index: 20; min-width: 150px; }
+  .vmenu.open { display: block; }
+  .vmenu button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; padding: 8px 10px; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; color: #1a2433; text-align: left; }
+  .vmenu button:hover { background: #f1f5f9; }
+  .fi { font-size: 9px; font-weight: 800; color: #fff; border-radius: 3px; padding: 2px 4px; }
+  .fi.pdf { background: #e2483d; } .fi.xls { background: #1f8f4e; } .fi.doc { background: #2a6cc4; }
+
+  /* ---------- document ---------- */
+  .docwrap { margin: 0 22px 40px; background: #e9edf1; border: 1px solid #e3e8ee; border-top: 0; padding: 20px; height: 72vh; overflow: auto; }
+  .doc { background: #fff; max-width: 1000px; margin: 0 auto; padding: 30px 34px; box-shadow: 0 2px 14px rgba(20,40,70,.12); transform-origin: top center; }
+  .letterhead { text-align: center; border-bottom: 2px solid #14304f; padding-bottom: 12px; margin-bottom: 14px; }
+  .lh-emblem { font-size: 26px; }
+  .lh-name { font-size: 18px; font-weight: 800; color: #14304f; margin-top: 4px; }
+  .lh-title { font-size: 14px; font-weight: 700; color: #33415a; margin-top: 6px; }
+  .doc-meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 12.5px; color: #33415a; margin-bottom: 16px; max-width: 540px; }
+  .doc-meta b { color: #5b6b7b; font-weight: 600; }
+
+  /* ---------- dark mode ---------- */
+  body.dark { background: #0b1320; color: #dbe4ee; }
+  body.dark .page-title { color: #e7eef6; }
+  body.dark .page-sub, body.dark .field > label { color: #9fb0c4; }
+  body.dark .panel, body.dark .vtoolbar { background: #13203a; border-color: #22324d; }
+  body.dark .summary { background: #13261d; border-color: #1e3a2a; }
+  body.dark .field input, body.dark .field select, body.dark .ms-box, body.dark .vbtn, body.dark .vzoom, body.dark .vfind, body.dark .report-search input { background: #0f1b30; border-color: #283a57; color: #dbe4ee; }
+  body.dark .docwrap { background: #0a1019; border-color: #22324d; }
+  body.dark .summary .val { color: #e7eef6; }
+  body.dark .vmenu, body.dark .ms-menu { background: #13203a; border-color: #283a57; color: #dbe4ee; }
+
   /* ---------- modals / login (unchanged behavior) ---------- */
   .btn { font: inherit; font-size: 13px; padding: 9px 13px; border: 0; border-radius: 8px; cursor: pointer; background: #d4881f; color: #fff; font-weight: 600; }
   .btn.ghost { background: #eef2f7; color: #33415a; }
@@ -145,10 +201,10 @@
   #printHeader .pf { font-size: 11px; color: #444; margin-bottom: 2px; }
 
   @media print {
-    .appbar, .panel, .summary, .modal-bg, .login-bg { display: none !important; }
-    .print-only { display: block; margin: 0 0 12px; }
+    .topbar, .pagehead, .vtoolbar, .panel, .summary, .modal-bg, .login-bg { display: none !important; }
     body { background: #fff; }
-    .report { margin: 0; }
+    .docwrap { margin: 0; padding: 0; height: auto; overflow: visible; background: #fff; border: 0; }
+    .doc { box-shadow: none; max-width: none; margin: 0; padding: 0; zoom: 1 !important; }
     .dimension { border: 0; border-radius: 0; margin: 0; page-break-before: always; }
     .dimension:first-child { page-break-before: avoid; }
     .btn-export { display: none; }
@@ -249,16 +305,32 @@
     </div>
   </div>
 
-  <!-- App bar -->
-  <header class="appbar">
-    <div class="brand"><span class="logo">📋</span> Detailed Statement by Cost Dimension</div>
-    <div class="actions">
-      <button class="b b-outline" id="uploadBtn">⬆ Upload Excel</button>
-      <button class="b b-outline" id="adminBtn">👥 Users</button>
-      <button class="b b-accent" id="print">🖨 Print / PDF</button>
-      <button class="b b-outline" id="logout">⤤ Sign out</button>
+  <!-- Top chrome bar -->
+  <div class="topbar">
+    <div class="tb-left">
+      <span class="tb-logo">AN</span>
+      <button class="org">Arizona National General Trading &amp; Co… <span>▾</span></button>
     </div>
-  </header>
+    <div class="tb-right">
+      <button class="b b-ghost" id="uploadBtn">⬆ Upload</button>
+      <button class="b b-ghost" id="adminBtn">👥 Users</button>
+      <button class="icon-btn" id="themeToggle" title="Toggle theme">☀</button>
+      <span class="cur">🇰🇼 KWD</span>
+      <button class="b b-ghost" id="logout">⤤ Sign out</button>
+    </div>
+  </div>
+
+  <!-- Page header -->
+  <div class="pagehead">
+    <div>
+      <h1 class="page-title">Detailed Statement by Cost Dimension</h1>
+      <div class="page-sub">View detailed financial transactions grouped by cost dimension.</div>
+    </div>
+    <div class="report-search">
+      <input id="reportSearch" placeholder="Search for a report...">
+      <span>🔍</span>
+    </div>
+  </div>
 
   <!-- Filter panel -->
   <section class="panel">
@@ -323,9 +395,45 @@
     <div class="status" id="status">Loading…</div>
   </div>
 
-  <div class="report">
-    <div id="printHeader" class="print-only"></div>
-    <div id="report"></div>
+  <!-- Report viewer toolbar -->
+  <div class="vtoolbar">
+    <div class="vnav">
+      <button class="vbtn" id="firstPage" title="Top">⏮</button>
+      <button class="vbtn" id="prevPage" title="Up">‹</button>
+      <span class="vpage">Page <b>1</b> of <b>1</b></span>
+      <button class="vbtn" id="nextPage" title="Down">›</button>
+      <button class="vbtn" id="lastPage" title="Bottom">⏭</button>
+      <button class="vbtn" id="vrefresh" title="Refresh">↻</button>
+    </div>
+    <select id="zoom" class="vzoom">
+      <option value="0.6">60%</option><option value="0.8">80%</option>
+      <option value="1" selected>100%</option><option value="1.25">125%</option><option value="1.5">150%</option>
+    </select>
+    <div class="vdrop">
+      <button class="vbtn wide" id="saveAs">💾 Save as ▾</button>
+      <div class="vmenu" id="saveMenu">
+        <button data-fmt="pdf"><span class="fi pdf">PDF</span> PDF</button>
+        <button data-fmt="excel"><span class="fi xls">XLS</span> Excel</button>
+        <button data-fmt="word"><span class="fi doc">DOC</span> Word</button>
+      </div>
+    </div>
+    <button class="vbtn wide" id="print">🖨 Print</button>
+    <input id="vfind" class="vfind" placeholder="Find">
+    <button class="vbtn" id="vfindNext">Find | Next</button>
+  </div>
+
+  <!-- Document -->
+  <div class="docwrap" id="docwrap">
+    <div class="doc" id="doc">
+      <div class="letterhead">
+        <div class="lh-emblem">⛰️</div>
+        <div class="lh-name">Arizona National General Trading &amp; Contracting (W.L.L)</div>
+        <div class="lh-title">Detailed Statement by Cost Dimension</div>
+      </div>
+      <div class="doc-meta" id="docMeta"></div>
+      <div id="printHeader" class="print-only"></div>
+      <div id="report"></div>
+    </div>
   </div>
 
   <script src="config.js"></script>
@@ -417,6 +525,7 @@
       return {
         dims: new Set([...document.querySelectorAll('.dimchk:checked')].map(c => c.value)),
         q: document.getElementById('proj').value.trim().toLowerCase(),
+        rsearch: document.getElementById('reportSearch').value.trim().toLowerCase(),
         nos: document.getElementById('vno').value.split(',').map(s => s.trim()).filter(Boolean),
         vtype: document.getElementById('vtype').value,
         side: document.getElementById('side').value,
@@ -469,6 +578,7 @@
 
         d.projects.forEach(p => {
           if (f.q && !p.name.toLowerCase().includes(f.q)) return;
+          if (f.rsearch && !p.name.toLowerCase().includes(f.rsearch)) return;
           const txns = p.txns.filter(t => matchTxn(t, f, noMatch));
           if (!txns.length) return;
           let bal = 0, td = 0, tc = 0;
@@ -529,6 +639,13 @@
       document.getElementById('s-cred').textContent = fmt(gC);
       const net = document.getElementById('s-net'); net.textContent = fmt(gD - gC); net.classList.toggle('neg', gD - gC < 0);
       setStatus('');
+
+      const m0 = DATA.dimensions[0] || {};
+      document.getElementById('docMeta').innerHTML =
+        `<b>Account Name</b><span>${esc(m0.account || '')}</span>` +
+        `<b>From Date</b><span>${esc(m0.from || '')}</span>` +
+        `<b>To Date</b><span>${esc(m0.to || '')}</span>` +
+        `<b>Projects</b><span>${gP}</span>`;
 
       document.getElementById('printHeader').innerHTML =
         '<h1>Statement of Account</h1><div class="pf">' + esc(filtersSummary(f, gP, gT.toLocaleString(), fmt(gD - gC))) + '</div>';
@@ -664,15 +781,68 @@
     // ---------- filter events ----------
     let t = null;
     const deb = () => { clearTimeout(t); t = setTimeout(render, 180); };
-    ['proj', 'vno', 'search'].forEach(id => document.getElementById(id).addEventListener('input', deb));
+    ['proj', 'vno', 'search', 'reportSearch'].forEach(id => document.getElementById(id).addEventListener('input', deb));
     ['from', 'to', 'vtype', 'side'].forEach(id => document.getElementById(id).addEventListener('change', render));
     document.getElementById('apply').addEventListener('click', render);
     document.getElementById('moreFilters').addEventListener('click', () => document.getElementById('row2').classList.toggle('hidden'));
     document.getElementById('reset').addEventListener('click', () => {
       document.querySelectorAll('.dimchk').forEach(c => c.checked = true);
-      ['proj', 'vno', 'search', 'from', 'to', 'vtype', 'side'].forEach(id => document.getElementById(id).value = '');
+      ['proj', 'vno', 'search', 'from', 'to', 'vtype', 'side', 'reportSearch'].forEach(id => document.getElementById(id).value = '');
       renderDimUI(); render();
     });
+
+    // ---------- report viewer toolbar ----------
+    const docEl = document.getElementById('doc'), docwrap = document.getElementById('docwrap');
+    document.getElementById('zoom').addEventListener('change', e => { docEl.style.zoom = e.target.value; });
+    document.getElementById('vrefresh').addEventListener('click', () => loadData());
+    document.getElementById('firstPage').addEventListener('click', () => docwrap.scrollTo({ top: 0, behavior: 'smooth' }));
+    document.getElementById('lastPage').addEventListener('click', () => docwrap.scrollTo({ top: docwrap.scrollHeight, behavior: 'smooth' }));
+    document.getElementById('prevPage').addEventListener('click', () => docwrap.scrollBy({ top: -docwrap.clientHeight * 0.9, behavior: 'smooth' }));
+    document.getElementById('nextPage').addEventListener('click', () => docwrap.scrollBy({ top: docwrap.clientHeight * 0.9, behavior: 'smooth' }));
+    const vfind = document.getElementById('vfind');
+    function doFind() { const term = vfind.value.trim(); if (term && window.find) { if (!window.find(term)) { window.getSelection().removeAllRanges(); window.find(term); } } }
+    document.getElementById('vfindNext').addEventListener('click', doFind);
+    vfind.addEventListener('keydown', e => { if (e.key === 'Enter') doFind(); });
+
+    // Save as: PDF / Excel / Word
+    const saveMenu = document.getElementById('saveMenu');
+    document.getElementById('saveAs').addEventListener('click', e => { e.stopPropagation(); saveMenu.classList.toggle('open'); });
+    document.addEventListener('click', () => saveMenu.classList.remove('open'));
+    saveMenu.addEventListener('click', e => {
+      const b = e.target.closest('[data-fmt]'); if (!b) return;
+      saveMenu.classList.remove('open');
+      if (b.dataset.fmt === 'pdf') window.print();
+      else if (b.dataset.fmt === 'excel') exportAllExcel();
+      else if (b.dataset.fmt === 'word') exportWord();
+    });
+    function exportAllExcel() {
+      const f = currentFilters(), noMatch = buildNoMatch(f.nos), wb = XLSX.utils.book_new(), used = {}; let any = false;
+      DATA.dimensions.forEach(d => {
+        if (!f.dims.has(d.name)) return;
+        const aoa = [['Project', 'Date', 'Voucher Type', 'No', 'Ref No.', 'Memo', 'Debit', 'Credit', 'Balance']];
+        d.projects.forEach(p => {
+          if (f.q && !p.name.toLowerCase().includes(f.q)) return;
+          if (f.rsearch && !p.name.toLowerCase().includes(f.rsearch)) return;
+          const txns = p.txns.filter(t => matchTxn(t, f, noMatch)); let bal = 0;
+          txns.forEach(t => { bal += t.debit - t.credit; aoa.push([p.name, t.date, t.type, t.no, t.ref, t.memo, t.debit, t.credit, bal]); });
+        });
+        if (aoa.length > 1) { let nm = d.name.slice(0, 28).replace(/[\\/?*\[\]:]/g, ' '); if (used[nm]) nm = nm.slice(0, 25) + (++used[nm]); else used[nm] = 1; XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nm); any = true; }
+      });
+      if (any) XLSX.writeFile(wb, 'Detailed_Statement_by_Cost_Dimension.xlsx'); else alert('No rows to export with the current filters.');
+    }
+    function exportWord() {
+      const style = '<style>body{font-family:"Segoe UI",Arial,sans-serif;font-size:11px;}table{border-collapse:collapse;width:100%;margin-bottom:10px}th,td{border:1px solid #9aa7b5;padding:4px 6px}thead th{background:#14304f;color:#fff}h1,.lh-name{color:#14304f}</style>';
+      const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8">' + style + '</head><body>' + docEl.innerHTML + '</body></html>';
+      const blob = new Blob(['﻿' + html], { type: 'application/msword' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Detailed_Statement_by_Cost_Dimension.doc'; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    // theme toggle
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const dark = document.body.classList.toggle('dark');
+      document.getElementById('themeToggle').textContent = dark ? '🌙' : '☀';
+    });
+
     document.getElementById('print').addEventListener('click', () => window.print());
 
     // ---------- admin ----------
