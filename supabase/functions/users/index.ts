@@ -1,6 +1,6 @@
-// Admin management of the approved-phone allowlist. Gated by the upload key
-// (same secret as `ingest`, stored in the private app_config table). Runs with
-// the service role so it can read/write allowed_users despite its RLS lock.
+// Admin management of access: approved phone numbers (allowed_users) AND
+// username/password login accounts (app_users + auth.users). Gated by the upload
+// key (stored in private app_config). Runs with the service role.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const cors = {
@@ -12,6 +12,8 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
 const digits = (s: unknown) => String(s ?? '').replace(/\D/g, '');
+const EMAIL_DOMAIN = 'audit.local';
+const userEmail = (u: string) => u.toLowerCase() + '@' + EMAIL_DOMAIN;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -31,28 +33,60 @@ Deno.serve(async (req) => {
 
   const action = String(p.action || 'list');
 
+  // ---- phone allowlist ----
   if (action === 'list') {
     const { data, error } = await supabase.from('allowed_users')
       .select('phone, label, added_at').order('added_at', { ascending: true });
     if (error) return json({ error: error.message }, 500);
     return json({ users: data });
   }
-
   if (action === 'add') {
     const phone = digits(p.phone);
     const label = String(p.label ?? '').trim();
     if (phone.length < 8) return json({ error: 'Phone must include country code (digits only), e.g. 96597207194.' }, 400);
-    const { error } = await supabase.from('allowed_users')
-      .upsert({ phone, label }, { onConflict: 'phone' });
+    const { error } = await supabase.from('allowed_users').upsert({ phone, label }, { onConflict: 'phone' });
     if (error) return json({ error: error.message }, 500);
     return json({ ok: true, phone, label });
   }
-
   if (action === 'remove') {
-    const phone = digits(p.phone);
-    const { error } = await supabase.from('allowed_users').delete().eq('phone', phone);
+    const { error } = await supabase.from('allowed_users').delete().eq('phone', digits(p.phone));
     if (error) return json({ error: error.message }, 500);
-    return json({ ok: true, phone });
+    return json({ ok: true });
+  }
+
+  // ---- username/password login accounts ----
+  if (action === 'list_logins') {
+    const { data, error } = await supabase.from('app_users')
+      .select('id, username, label, created_at').order('created_at', { ascending: true });
+    if (error) return json({ error: error.message }, 500);
+    return json({ logins: data });
+  }
+  if (action === 'add_login') {
+    const username = String(p.username ?? '').trim().toLowerCase();
+    const password = String(p.password ?? '');
+    const label = String(p.label ?? '').trim();
+    if (!/^[a-z0-9._-]{3,}$/.test(username)) return json({ error: 'Username must be 3+ chars (letters, numbers, . _ -).' }, 400);
+    if (password.length < 6) return json({ error: 'Password must be at least 6 characters.' }, 400);
+
+    const created = await supabase.auth.admin.createUser({
+      email: userEmail(username), password, email_confirm: true,
+      user_metadata: { username, label },
+    });
+    if (created.error) return json({ error: created.error.message }, 400);
+
+    const ins = await supabase.from('app_users').insert({ id: created.data.user!.id, username, label });
+    if (ins.error) {
+      await supabase.auth.admin.deleteUser(created.data.user!.id);   // roll back the auth user
+      return json({ error: ins.error.message }, 500);
+    }
+    return json({ ok: true, username, label });
+  }
+  if (action === 'remove_login') {
+    const id = String(p.id ?? '');
+    if (!id) return json({ error: 'Missing id' }, 400);
+    await supabase.from('app_users').delete().eq('id', id);
+    await supabase.auth.admin.deleteUser(id);
+    return json({ ok: true });
   }
 
   return json({ error: 'Unknown action' }, 400);

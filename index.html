@@ -85,6 +85,9 @@
   .login .msg.err { color: #b00020; }
   .login .back { background: none; border: 0; color: #21456b; cursor: pointer; font: inherit; font-size: 12px; margin-top: 12px; padding: 0; }
   .login .hint { font-size: 11px; color: #99a; margin-top: 6px; }
+  .login .tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .login .tab { flex: 1; padding: 8px; border: 1px solid #c3ccd6; background: #f4f7fa; color: #21456b; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px; }
+  .login .tab.active { background: #14304f; color: #fff; border-color: #14304f; }
 
   @media print {
     .toolbar, .summary-strip, .modal-bg, .login-bg { display: none !important; }
@@ -101,9 +104,23 @@
   <div class="login-bg" id="loginBg">
     <div class="login">
       <h1>Statement of Account</h1>
-      <p>Sign in with your phone number to view the reports.</p>
+      <p>Sign in to view the reports.</p>
 
-      <div id="step-phone">
+      <div class="tabs">
+        <button class="tab active" id="tab-pw">Username &amp; password</button>
+        <button class="tab" id="tab-phone">Phone code</button>
+      </div>
+
+      <div id="pane-pw">
+        <label for="user-in">Username</label>
+        <input id="user-in" type="text" autocomplete="username" placeholder="username">
+        <label for="pass-in" style="margin-top:10px">Password</label>
+        <input id="pass-in" type="password" autocomplete="current-password" placeholder="password">
+        <button class="btn" id="pwLogin">Sign in</button>
+      </div>
+
+      <div id="pane-phone" style="display:none">
+        <div id="step-phone">
         <label for="phone-in">Phone number</label>
         <input id="phone-in" type="tel" inputmode="tel" placeholder="+965 5000 0000" value="+965" autocomplete="tel">
         <div class="hint">Include your country code (e.g. +965 for Kuwait).</div>
@@ -115,6 +132,7 @@
         <input id="code-in" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code">
         <button class="btn" id="verifyCode">Verify &amp; sign in</button>
         <button class="back" id="changeNumber">← Use a different number</button>
+        </div>
       </div>
 
       <div class="msg" id="login-msg"></div>
@@ -138,6 +156,17 @@
           <button class="btn" id="addUser" style="white-space:nowrap">+ Add</button>
         </div>
         <table class="summary" id="userTable" style="font-size:12px"></table>
+
+        <hr style="margin:18px 0; border:0; border-top:1px solid #e2e8ee;">
+        <h2 style="margin:0 0 2px; font-size:13px; color:#14304f;">Username / password accounts</h2>
+        <p style="margin:0 0 10px; color:#667; font-size:12px;">Create logins for people who don't use phone codes.</p>
+        <div style="display:flex; gap:8px; align-items:flex-end; margin-bottom:10px; flex-wrap:wrap;">
+          <div class="row" style="flex:1; margin:0; min-width:110px;"><label>Username</label><input id="newUser" placeholder="e.g. ahmad" autocomplete="off"></div>
+          <div class="row" style="flex:1; margin:0; min-width:110px;"><label>Password</label><input id="newPass" type="text" placeholder="min 6 chars" autocomplete="off"></div>
+          <div class="row" style="flex:1; margin:0; min-width:110px;"><label>Name (optional)</label><input id="newUserLabel" placeholder="Ahmad" autocomplete="off"></div>
+          <button class="btn" id="addLogin" style="white-space:nowrap">+ Create</button>
+        </div>
+        <table class="summary" id="loginTable" style="font-size:12px"></table>
       </div>
       <div class="msg" id="admin-msg"></div>
       <div class="modal-actions">
@@ -215,16 +244,20 @@
       const dims = await sb.from('dimensions').select('*').order('sort_order', { ascending: true });
       if (dims.error) { setStatus('Load error: ' + dims.error.message, 'err'); return; }
 
-      // paginate transactions (1000-row cap per request)
-      const all = [];
-      for (let from = 0; ; from += 1000) {
-        const page = await sb.from('transactions').select('*')
+      // count rows, then fetch all 1000-row pages in parallel (much faster than sequential)
+      const head = await sb.from('transactions').select('id', { count: 'exact', head: true });
+      if (head.error) { setStatus('Load error: ' + head.error.message, 'err'); return; }
+      const totalRows = head.count || 0;
+      const PAGE = 1000, reqs = [];
+      for (let from = 0; from < totalRows; from += PAGE) {
+        reqs.push(sb.from('transactions').select('*')
           .order('cost_dimension', { ascending: true }).order('project', { ascending: true }).order('seq', { ascending: true })
-          .range(from, from + 999);
-        if (page.error) { setStatus('Load error: ' + page.error.message, 'err'); return; }
-        all.push(...page.data);
-        if (page.data.length < 1000) break;
+          .range(from, from + PAGE - 1));
       }
+      const pages = await Promise.all(reqs);
+      const bad = pages.find(p => p.error);
+      if (bad) { setStatus('Load error: ' + bad.error.message, 'err'); return; }
+      const all = pages.flatMap(p => p.data);
 
       // reshape into dimensions -> projects -> txns
       const dimOrder = new Map((dims.data || []).map(d => [d.name, d]));
@@ -485,6 +518,35 @@
     }
     async function refreshUsers() { const { users } = await callUsers('list'); renderUsers(users); }
 
+    const loginTable = document.getElementById('loginTable');
+    function renderLogins(logins) {
+      if (!logins.length) { loginTable.innerHTML = '<tbody><tr><td style="color:#888">No username accounts yet.</td></tr></tbody>'; return; }
+      loginTable.innerHTML =
+        '<thead><tr><th>Username</th><th>Name</th><th></th></tr></thead><tbody>' +
+        logins.map(u => `<tr><td>${esc(u.username)}</td><td>${esc(u.label || '')}</td>
+          <td style="text-align:right"><button class="back" data-rmid="${esc(u.id)}" style="color:#b00020;margin:0">Remove</button></td></tr>`).join('') +
+        '</tbody>';
+      loginTable.querySelectorAll('[data-rmid]').forEach(b => b.addEventListener('click', async () => {
+        if (!confirm('Remove this login account?')) return;
+        try { await callUsers('remove_login', { id: b.dataset.rmid }); setAdminMsg('Removed.'); await refreshLogins(); }
+        catch (e) { setAdminMsg(e.message, true); }
+      }));
+    }
+    async function refreshLogins() { const { logins } = await callUsers('list_logins'); renderLogins(logins); }
+
+    document.getElementById('addLogin').addEventListener('click', async () => {
+      const username = document.getElementById('newUser').value.trim();
+      const password = document.getElementById('newPass').value;
+      const label = document.getElementById('newUserLabel').value.trim();
+      setAdminMsg('Creating…');
+      try {
+        const r = await callUsers('add_login', { username, password, label });
+        setAdminMsg('Created login "' + r.username + '". They can sign in with that username + password.');
+        document.getElementById('newUser').value = ''; document.getElementById('newPass').value = ''; document.getElementById('newUserLabel').value = '';
+        await refreshLogins();
+      } catch (e) { setAdminMsg(e.message, true); }
+    });
+
     function openAdmin() { adminMsg.textContent = ''; adminBody.style.display = 'none'; adminBg.classList.add('show');
       const saved = sessionStorage.getItem('adminKey'); if (saved) { adminKey.value = saved; } }
     function closeAdmin() { adminBg.classList.remove('show'); }
@@ -494,7 +556,7 @@
     adminBg.addEventListener('click', e => { if (e.target === adminBg) closeAdmin(); });
     document.getElementById('unlockAdmin').addEventListener('click', async () => {
       setAdminMsg('Checking…');
-      try { await refreshUsers(); adminBody.style.display = ''; sessionStorage.setItem('adminKey', adminKey.value.trim()); setAdminMsg('Unlocked.'); }
+      try { await refreshUsers(); await refreshLogins(); adminBody.style.display = ''; sessionStorage.setItem('adminKey', adminKey.value.trim()); setAdminMsg('Unlocked.'); }
       catch (e) { adminBody.style.display = 'none'; setAdminMsg(e.message, true); }
     });
     document.getElementById('addUser').addEventListener('click', async () => {
@@ -520,15 +582,34 @@
     let phoneVal = '';
 
     async function afterAuth() {
-      const { data: allowed, error } = await sb.rpc('is_allowed_phone');
+      const { data: allowed, error } = await sb.rpc('has_access');
       if (error) { loginMsg('Could not verify access: ' + error.message, true); showLogin(); return; }
       if (!allowed) {
-        loginMsg('This number is not approved for access yet. Contact the administrator.', true);
-        await sb.auth.signOut(); showStepPhone(); showLogin(); return;
+        loginMsg('This account is not approved for access yet. Contact the administrator.', true);
+        await sb.auth.signOut(); showLogin(); return;
       }
       hideLogin();
       await loadData();
     }
+
+    // tab switching (username/password vs phone)
+    const panePw = document.getElementById('pane-pw'), panePhone = document.getElementById('pane-phone');
+    const tabPw = document.getElementById('tab-pw'), tabPhone = document.getElementById('tab-phone');
+    tabPw.addEventListener('click', () => { tabPw.classList.add('active'); tabPhone.classList.remove('active'); panePw.style.display = ''; panePhone.style.display = 'none'; loginMsg(''); });
+    tabPhone.addEventListener('click', () => { tabPhone.classList.add('active'); tabPw.classList.remove('active'); panePhone.style.display = ''; panePw.style.display = 'none'; loginMsg(''); });
+
+    // username + password sign-in (username is mapped to an internal email)
+    const userIn = document.getElementById('user-in'), passIn = document.getElementById('pass-in');
+    document.getElementById('pwLogin').addEventListener('click', async () => {
+      const username = userIn.value.trim().toLowerCase();
+      const password = passIn.value;
+      if (!username || !password) { loginMsg('Enter your username and password.', true); return; }
+      loginMsg('Signing in…');
+      const { error } = await sb.auth.signInWithPassword({ email: username + '@audit.local', password });
+      if (error) { loginMsg('Invalid username or password.', true); return; }
+      await afterAuth();
+    });
+    [userIn, passIn].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pwLogin').click(); }));
 
     document.getElementById('sendCode').addEventListener('click', async () => {
       phoneVal = phoneIn.value.replace(/\s+/g, '').trim();

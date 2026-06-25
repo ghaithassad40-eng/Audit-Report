@@ -47,12 +47,22 @@ Or deploy `index.html` + `config.js` to any static host (GitHub Pages, Netlify, 
 
 The expected Excel layout is an R&F "Statement of Account" export with a `Date / Voucher Type / No / CostCenter / Ref No. / Memo / Debit / Credit / Balance` table; columns are matched by header name, so minor layout differences are tolerated.
 
-## Authentication (phone OTP)
+## Authentication
 
-Reads are gated behind **phone-number OTP login** (Supabase Auth). On load the app shows a sign-in screen; the user enters their phone number, receives a one-time code by SMS, and verifies it. Only **approved** phone numbers can see data.
+Reads are gated behind login (Supabase Auth). The sign-in screen offers **two methods**:
 
-- RLS `SELECT` policies require an authenticated user **whose phone is on the allowlist** (`public.allowed_users`), enforced via the `public.is_allowed_phone()` security-definer function. The publishable/anon key alone reads nothing.
-- Writes still go only through the `ingest` Edge Function (upload-key gated). The public key cannot modify anything.
+- **Username & password** — admin-created accounts. The username is mapped to an internal email (`username@audit.local`) under the hood. Works with no SMS provider.
+- **Phone code (OTP)** — the user enters a phone number and verifies an SMS code. Requires Twilio (see below).
+
+Access is unified by `public.has_access()`: an authenticated user is allowed if their **phone is on the allowlist** (`allowed_users`) **or** they are an **admin-created login account** (`app_users`). The publishable/anon key alone reads nothing. Writes go only through Edge Functions (upload-key gated).
+
+### Creating accounts
+
+Open **⚙ Admin** from the login screen (or **⚙ Users** in the toolbar), enter the **upload key**, then:
+- **Username / password accounts** — create a username + password for a user (no SMS needed).
+- **Approved phone numbers** — allowlist a phone for OTP login.
+
+Both go through the `users` Edge Function (service role, upload-key gated). There is **no public sign-up**.
 
 ### SMS delivery — required one-time setup (Twilio Verify)
 
