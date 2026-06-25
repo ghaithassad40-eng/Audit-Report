@@ -193,8 +193,8 @@
       <datalist id="projlist"></datalist>
     </div>
     <div class="field">
-      <label>Voucher No</label>
-      <input id="vno" placeholder="e.g. 645, 1057" size="12" autocomplete="off">
+      <label>Voucher No (list or range)</label>
+      <input id="vno" placeholder="e.g. 645, 1057, 700-720" size="18" autocomplete="off">
     </div>
     <div class="field">
       <label>Search (memo / ref / type)</label>
@@ -311,10 +311,27 @@
       return {
         dims: new Set([...document.querySelectorAll('.dimchk:checked')].map(c => c.value)),
         q: document.getElementById('proj').value.trim().toLowerCase(),
-        nos: document.getElementById('vno').value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean),
+        nos: document.getElementById('vno').value.split(',').map(s => s.trim()).filter(Boolean),
         search: document.getElementById('search').value.trim().toLowerCase(),
         from: dateToTs(document.getElementById('from').value),
         to: dateToTs(document.getElementById('to').value),
+      };
+    }
+
+    // Voucher No matcher: supports single numbers, lists, and ranges like "700-720".
+    function buildNoMatch(tokens) {
+      if (!tokens.length) return null;
+      const singles = new Set(), ranges = [];
+      tokens.forEach(tok => {
+        const m = tok.match(/^(\d+)\s*-\s*(\d+)$/);
+        if (m) { let a = +m[1], b = +m[2]; if (a > b) [a, b] = [b, a]; ranges.push([a, b]); }
+        else tok.split(/\s+/).filter(Boolean).forEach(x => singles.add(x));
+      });
+      return no => {
+        const s = String(no);
+        if (singles.has(s)) return true;
+        const n = Number(s);
+        return Number.isFinite(n) && ranges.some(([a, b]) => n >= a && n <= b);
       };
     }
 
@@ -331,6 +348,7 @@
     function render() {
       const f = currentFilters();
       const { dims, q, nos, search, from, to } = f;
+      const noMatch = buildNoMatch(nos);
       let gD = 0, gC = 0, gT = 0, gP = 0;
       const out = [];
 
@@ -343,7 +361,7 @@
           if (q && !p.name.toLowerCase().includes(q)) return;
           const txns = p.txns.filter(t =>
             (from == null || t.ts >= from) && (to == null || t.ts <= to) &&
-            (!nos.length || nos.includes(String(t.no))) &&
+            (!noMatch || noMatch(t.no)) &&
             (!search || (t.memo + ' ' + t.ref + ' ' + t.type + ' ' + t.no).toLowerCase().includes(search)));
           if (!txns.length) return;
           let bal = 0, td = 0, tc = 0;
