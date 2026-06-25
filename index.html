@@ -381,13 +381,26 @@
     }
 
     // ---------- in-browser Excel parsing (mirrors generate-report.cjs) ----------
-    const DIMS = [{ key: 'material', name: 'Material' }, { key: 'labor', name: 'Labor', alt: ['labour'] },
-                  { key: 'equipment', name: 'Equipment' }, { key: 'overhead', name: 'Overhead' }];
-    function dimensionFromName(fname) {
-      const low = fname.toLowerCase().replace(/\.xlsx$/, '');
-      for (let i = 0; i < DIMS.length; i++) { const d = DIMS[i];
-        if (low.includes(d.key) || (d.alt || []).some(a => low.includes(a))) return { name: d.name, order: i }; }
-      return { name: fname.replace(/\.xlsx$/i, ''), order: DIMS.length };
+    const DIMS = [
+      { key: 'material', name: 'Direct Material' },
+      { key: 'labor', name: 'Direct Labor', alt: ['labour'] },
+      { key: 'equipment', name: 'Equipment' },
+      { key: 'subcontractor', name: 'Subcontractor Works' },
+      { key: 'overhead', name: 'Overhead Costs' },
+      { key: 'revenue', name: 'Revenue' },
+      { key: 'accumulated', name: 'Accumulated Expenses' },
+    ];
+    // Resolve the cost dimension from the file's "Cost dimesion" header value, else the file name.
+    function resolveDimension(meta, fname) {
+      const candidates = [meta.costDimension || '', fname.replace(/\.xlsx$/i, '')];
+      for (let i = 0; i < DIMS.length; i++) {
+        const d = DIMS[i];
+        if (candidates.some(c => { const low = c.toLowerCase(); return low.includes(d.key) || (d.alt || []).some(a => low.includes(a)); }))
+          return { name: d.name, order: i };
+      }
+      const hdr = (meta.costDimension || '').trim();
+      const fallback = hdr && hdr.toLowerCase() !== 'all' ? hdr : fname.replace(/\.xlsx$/i, '');
+      return { name: fallback, order: DIMS.length };
     }
     const numv = s => { s = String(s).trim().replace(/,/g, ''); if (!s) return 0;
       if (s.startsWith('(') && s.endsWith(')')) return -(parseFloat(s.replace(/[()]/g, '')) || 0); return parseFloat(s) || 0; };
@@ -403,7 +416,8 @@
     function parseWorkbook(fname, wb) {
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
-      const LABELS = { 'account name': 'account', 'from date': 'from', 'to date': 'to' };
+      const LABELS = { 'account name': 'account', 'from date': 'from', 'to date': 'to',
+                       'cost dimesion': 'costDimension', 'cost dimension': 'costDimension' };
       const meta = {}; let hdr = -1;
       for (let i = 0; i < rows.length; i++) {
         const cells = rows[i].map(c => String(c).trim());
@@ -457,7 +471,7 @@
         const buf = await picked.arrayBuffer();
         const wb = XLSX.read(buf, { type: 'array' });
         const { meta, rows } = parseWorkbook(picked.name, wb);
-        const dim = dimensionFromName(picked.name);
+        const dim = resolveDimension(meta, picked.name);
         msg.textContent = `Parsed ${rows.length} rows → ${dim.name}. Uploading…`;
         const res = await fetch(cfg.ingestUrl, {
           method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': cfg.anonKey },

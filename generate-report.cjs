@@ -27,12 +27,15 @@ const CHROME = [
   'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
 ].find(p => fs.existsSync(p));
 
-// Known cost dimensions in display order. Detected from the file name.
+// Known cost dimensions in display order. Detected from the "Cost dimesion" header or file name.
 const DIMENSIONS = [
-  { key: 'material', name: 'Material' },
-  { key: 'labor', name: 'Labor', alt: ['labour'] },
+  { key: 'material', name: 'Direct Material' },
+  { key: 'labor', name: 'Direct Labor', alt: ['labour'] },
   { key: 'equipment', name: 'Equipment' },
-  { key: 'overhead', name: 'Overhead' },
+  { key: 'subcontractor', name: 'Subcontractor Works' },
+  { key: 'overhead', name: 'Overhead Costs' },
+  { key: 'revenue', name: 'Revenue' },
+  { key: 'accumulated', name: 'Accumulated Expenses' },
 ];
 
 function num(s) {
@@ -64,15 +67,17 @@ function tsFromDMY(s) {
   return m ? parseInt(m[3] + m[2] + m[1], 10) : 0;
 }
 
-// Identify the cost dimension from the file name (Material / Labor / Equipment / Overhead).
-function dimensionInfo(file) {
+// Identify the cost dimension from the "Cost dimesion" header value, else the file name.
+function dimensionInfo(file, meta) {
   const base = path.basename(file).replace(/\.xlsx$/i, '');
-  const low = base.toLowerCase();
+  const candidates = [(meta && meta.costDimension) || '', base];
   for (let i = 0; i < DIMENSIONS.length; i++) {
     const d = DIMENSIONS[i];
-    if (low.includes(d.key) || (d.alt || []).some(a => low.includes(a))) return { name: d.name, order: i };
+    if (candidates.some(c => { const low = c.toLowerCase(); return low.includes(d.key) || (d.alt || []).some(a => low.includes(a)); }))
+      return { name: d.name, order: i };
   }
-  return { name: base, order: DIMENSIONS.length };   // fallback: use file name, sort last
+  const hdr = ((meta && meta.costDimension) || '').trim();
+  return { name: hdr && hdr.toLowerCase() !== 'all' ? hdr : base, order: DIMENSIONS.length };
 }
 
 function parseWorkbook(file) {
@@ -82,7 +87,8 @@ function parseWorkbook(file) {
 
   // Metadata labels may be offset into any column; read the next non-empty cell as the value.
   const LABELS = { 'account name': 'account', 'from date': 'from', 'to date': 'to',
-                   'main cost center': 'mainCostCenter', 'cost center': 'costCenter', 'division': 'division' };
+                   'main cost center': 'mainCostCenter', 'cost center': 'costCenter', 'division': 'division',
+                   'cost dimesion': 'costDimension', 'cost dimension': 'costDimension' };
   const meta = {};
   let headerRow = -1;
   for (let i = 0; i < rows.length; i++) {
@@ -138,7 +144,7 @@ function parseWorkbook(file) {
 // Build a cost-dimension object from one or more parsed workbooks that share a dimension.
 function buildDimension(parsedList) {
   const first = parsedList[0];
-  const info = dimensionInfo(first.file);
+  const info = dimensionInfo(first.file, first.meta);
   const merged = new Map();
   for (const p of parsedList) {
     for (const [name, txns] of p.txnsByProject) {
@@ -330,7 +336,7 @@ async function main() {
   const byDim = new Map();
   for (const f of files) {
     const parsed = parseWorkbook(f);
-    const info = dimensionInfo(f);
+    const info = dimensionInfo(f, parsed.meta);
     if (!byDim.has(info.name)) byDim.set(info.name, []);
     byDim.get(info.name).push(parsed);
     console.log(`   ${path.basename(f)}  ->  ${info.name}`);
