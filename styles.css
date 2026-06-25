@@ -141,17 +141,17 @@ body { font-family: var(--font); color: var(--ink); font-size: 13px; margin: 0; 
 /* ---------- document ---------- */
 .docwrap { margin: 0 22px 40px; background: #e9edf1; border: 1px solid var(--border-soft); border-top: 0; padding: 20px; height: 72vh; overflow: auto; }
 .doc { background: var(--surface); max-width: 1000px; margin: 0 auto; padding: 30px 34px; box-shadow: 0 2px 14px rgba(20,40,70,.12); transform-origin: top center; }
-.letterhead { position: relative; text-align: center; padding-bottom: 10px; min-height: 96px; }
-.lh-logo-block { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 10px; text-align: left; }
+.letterhead { display: flex; align-items: center; gap: 22px; border-bottom: 3px solid var(--navy); padding-bottom: 12px; }
+.lh-logo-block { flex: none; display: flex; align-items: center; gap: 10px; }
 .lh-logo { height: 72px; width: auto; flex: none; }
 .lh-brand { line-height: 1.12; }
 .lh-brand .lh-ar { font-size: 15px; font-weight: 800; color: #111; }
 .lh-brand .lh-ar-sub { font-size: 8px; color: #222; margin-bottom: 3px; }
 .lh-brand .lh-en { font-size: 15px; font-weight: 800; letter-spacing: .5px; color: #111; }
 .lh-brand .lh-en-sub { font-size: 8px; font-weight: 700; color: #222; }
-.lh-titles { padding: 0 40px; }
-.lh-company { font-size: 28px; font-weight: 800; color: #111; line-height: 1.15; }
-.lh-doctype { font-size: 22px; font-weight: 700; color: #111; margin-top: 10px; }
+.lh-titles { flex: 1; min-width: 0; text-align: center; }
+.lh-company { font-size: 26px; font-weight: 800; color: #111; line-height: 1.15; }
+.lh-doctype { font-size: 21px; font-weight: 700; color: #111; margin-top: 8px; }
 .doc-meta-tbl { width: 100%; border-collapse: collapse; font-size: 14px; margin: 18px 0; }
 .doc-meta-tbl td { padding: 7px 4px; border-bottom: 1px solid #cfd6dd; vertical-align: top; }
 .doc-meta-tbl td.lbl { width: 210px; color: #111; }

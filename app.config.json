@@ -52,10 +52,10 @@
 
   "docMeta": {
     "accountName": "Account Name", "fromDate": "From Date", "toDate": "To Date",
-    "mainCostCenter": "Main Cost Center", "costCenter": "Cost Center", "branch": "Branch", "targetMoves": "Target Moves",
+    "costDimension": "Cost Dimension", "voucherType": "Voucher Type", "side": "Side",
+    "project": "Project", "voucherNo": "Voucher No",
     "projects": "Projects", "period": "Period", "account": "Account"
   },
-  "headerDefaults": { "mainCostCenter": "All", "costCenter": "All", "branch": "All", "targetMoves": "All" },
 
   "misc": {
     "allTypes": "All types",
@@ -64,7 +64,8 @@
     "projectsSummaryTitle": "Projects Summary",
     "dropPrompt": "Drop .xlsx here, or click to choose",
     "noneLabel": "none",
-    "selectedSuffix": "Selected"
+    "selectedSuffix": "Selected",
+    "allLabel": "All"
   },
 
   "text": {

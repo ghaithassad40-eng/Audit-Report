@@ -229,17 +229,22 @@ function applyConfig(C) {
     const net = document.getElementById('s-net'); net.textContent = fmt(gD - gC); net.classList.toggle('neg', gD - gC < 0);
     setStatus('');
 
+    // Header metadata reflects the active filters.
     const m0 = DATA.dimensions[0] || {};
-    const HD = CONFIG.headerDefaults || {};
+    const ALL = MISC.allLabel;
+    const tsToDMY = ts => { const s = String(ts); return s.length === 8 ? s.slice(6, 8) + '/' + s.slice(4, 6) + '/' + s.slice(0, 4) : ''; };
+    const dimsAll = f.dims.size === DATA.dimensions.length;
+    const sideLabel = (CONFIG.sides.find(s => s.value === f.side) || {}).label || ALL;
     const metaRows = [
       [DM.accountName, m0.account || ''],
-      [DM.fromDate, m0.from || ''],
-      [DM.toDate, m0.to || ''],
-      [DM.mainCostCenter, HD.mainCostCenter || ''],
-      [DM.costCenter, HD.costCenter || ''],
-      [DM.branch, HD.branch || ''],
-      [DM.targetMoves, HD.targetMoves || ''],
+      [DM.fromDate, f.from ? tsToDMY(f.from) : (m0.from || '')],
+      [DM.toDate, f.to ? tsToDMY(f.to) : (m0.to || '')],
+      [DM.costDimension, dimsAll ? ALL : ([...f.dims].join(', ') || ALL)],
+      [DM.voucherType, f.vtype || ALL],
+      [DM.side, sideLabel],
     ];
+    if (f.q || f.rsearch) metaRows.push([DM.project, [f.q, f.rsearch].filter(Boolean).join(', ')]);
+    if (f.nos.length) metaRows.push([DM.voucherNo, f.nos.join(', ')]);
     document.getElementById('docMeta').innerHTML =
       metaRows.map(([l, v]) => `<tr><td class="lbl">${esc(l)}</td><td>${esc(v)}</td></tr>`).join('');
 
