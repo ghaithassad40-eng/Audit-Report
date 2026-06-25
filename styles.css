@@ -141,15 +141,16 @@ body { font-family: var(--font); color: var(--ink); font-size: 13px; margin: 0; 
 /* ---------- document ---------- */
 .docwrap { margin: 0 22px 40px; background: #e9edf1; border: 1px solid var(--border-soft); border-top: 0; padding: 20px; height: 72vh; overflow: auto; }
 .doc { background: var(--surface); max-width: 1000px; margin: 0 auto; padding: 30px 34px; box-shadow: 0 2px 14px rgba(20,40,70,.12); transform-origin: top center; }
-.letterhead { display: flex; align-items: center; gap: 22px; border-bottom: 3px solid var(--navy); padding-bottom: 12px; }
-.lh-logo-block { flex: none; display: flex; align-items: center; gap: 10px; }
-.lh-logo { height: 72px; width: auto; flex: none; }
-.lh-brand { line-height: 1.12; }
-.lh-brand .lh-ar { font-size: 15px; font-weight: 800; color: #111; }
+.letterhead { display: flex; align-items: center; border-bottom: 3px solid var(--navy); padding-bottom: 12px; }
+.lh-logo-block { flex: 0 0 280px; display: flex; align-items: center; gap: 10px; }
+.lh-logo { height: 66px; width: auto; flex: none; }
+.lh-brand { line-height: 1.12; min-width: 0; }
+.lh-brand .lh-ar { font-size: 14px; font-weight: 800; color: #111; }
 .lh-brand .lh-ar-sub { font-size: 8px; color: #222; margin-bottom: 3px; }
-.lh-brand .lh-en { font-size: 15px; font-weight: 800; letter-spacing: .5px; color: #111; }
+.lh-brand .lh-en { font-size: 14px; font-weight: 800; letter-spacing: .5px; color: #111; }
 .lh-brand .lh-en-sub { font-size: 8px; font-weight: 700; color: #222; }
 .lh-titles { flex: 1; min-width: 0; text-align: center; }
+.lh-spacer { flex: 0 0 280px; }
 .lh-company { font-size: 26px; font-weight: 800; color: #111; line-height: 1.15; }
 .lh-doctype { font-size: 21px; font-weight: 700; color: #111; margin-top: 8px; }
 .doc-meta-tbl { width: 100%; border-collapse: collapse; font-size: 14px; margin: 18px 0; }
