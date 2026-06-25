@@ -8,8 +8,8 @@ Upload an Excel export per cost dimension (Material, Labor, Equipment, Overhead)
 
 ```
 Browser (index.html)
-  ├─ READ  : supabase-js (URL + publishable key)  →  SELECT from public tables
-  │                                                   (RLS: public read, no public write)
+  ├─ AUTH  : phone OTP login (Supabase Auth) — only allowlisted numbers
+  ├─ READ  : supabase-js (URL + publishable key)  →  SELECT (RLS: authenticated + allowlisted)
   └─ UPLOAD: SheetJS parses .xlsx in-browser → POST rows + upload key → Edge Function "ingest"
                                                           │ (service role, server-side)
                                                           ▼
@@ -47,16 +47,32 @@ Or deploy `index.html` + `config.js` to any static host (GitHub Pages, Netlify, 
 
 The expected Excel layout is an R&F "Statement of Account" export with a `Date / Voucher Type / No / CostCenter / Ref No. / Memo / Debit / Credit / Balance` table; columns are matched by header name, so minor layout differences are tolerated.
 
-## Security / data note
+## Authentication (phone OTP)
 
-⚠️ **This repo is public and the data is configured for public read.** Anyone with the URL + publishable key (both in `config.js`) can read the stored statements. This is an explicit choice. Protection is on the **write** side:
+Reads are gated behind **phone-number OTP login** (Supabase Auth). On load the app shows a sign-in screen; the user enters their phone number, receives a one-time code by SMS, and verifies it. Only **approved** phone numbers can see data.
 
-- RLS allows `SELECT` to everyone, and defines **no** insert/update/delete policy → the public key cannot modify anything.
-- Uploads go only through the `ingest` Edge Function, which checks an **upload key** stored in a private `app_config` table (no RLS policy → unreadable by the public key; only the service role can read it).
+- RLS `SELECT` policies require an authenticated user **whose phone is on the allowlist** (`public.allowed_users`), enforced via the `public.is_allowed_phone()` security-definer function. The publishable/anon key alone reads nothing.
+- Writes still go only through the `ingest` Edge Function (upload-key gated). The public key cannot modify anything.
 
-To lock down reads later, change the `transactions`/`dimensions` SELECT policies from `using (true)` to require `auth.role() = 'authenticated'` and add Supabase Auth.
+### SMS delivery — required one-time setup (Twilio Verify)
 
-Rotate the upload key in the Supabase SQL editor:
+Supabase cannot send SMS on its own. In the Supabase dashboard → **Authentication → Sign In / Providers → Phone**:
+1. Enable the **Phone** provider.
+2. Set SMS provider to **Twilio Verify** and paste your Twilio **Account SID**, **Auth Token**, and **Verify Service SID**.
+3. (Recommended) Disable "Enable phone signups" is *not* needed here — access is already restricted by the allowlist, so even if anyone logs in they can't read unless approved.
+
+Each SMS costs money (billed by Twilio).
+
+### Managing approved phone numbers
+
+Add/remove approved numbers in the Supabase SQL editor (digits only, country code, **no** `+`):
+
+```sql
+insert into public.allowed_users (phone, label) values ('96550000000', 'Ghaith') on conflict do nothing;
+delete from public.allowed_users where phone = '96550000000';
+```
+
+### Rotate the upload key
 
 ```sql
 update public.app_config set value = '<new-secret>' where key = 'upload_secret';

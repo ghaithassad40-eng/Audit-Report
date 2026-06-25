@@ -71,8 +71,22 @@
   .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
   .modal .msg { font-size: 12px; min-height: 16px; }
 
+  /* login gate */
+  .login-bg { position: fixed; inset: 0; background: #14304f; display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .login-bg.hidden { display: none; }
+  .login { background: #fff; border-radius: 10px; padding: 30px 28px; width: 380px; max-width: 92vw; box-shadow: 0 14px 50px rgba(0,0,0,.4); }
+  .login h1 { font-size: 19px; color: #14304f; margin: 0 0 4px; }
+  .login p { color: #667; font-size: 12px; margin: 0 0 18px; }
+  .login label { font-size: 11px; font-weight: 600; color: #444; display: block; margin-bottom: 4px; }
+  .login input { width: 100%; font: inherit; font-size: 15px; padding: 9px 11px; border: 1px solid #c3ccd6; border-radius: 6px; letter-spacing: .5px; }
+  .login .btn { width: 100%; padding: 10px; font-size: 14px; margin-top: 14px; }
+  .login .msg { font-size: 12px; min-height: 16px; margin-top: 10px; }
+  .login .msg.err { color: #b00020; }
+  .login .back { background: none; border: 0; color: #21456b; cursor: pointer; font: inherit; font-size: 12px; margin-top: 12px; padding: 0; }
+  .login .hint { font-size: 11px; color: #99a; margin-top: 6px; }
+
   @media print {
-    .toolbar, .summary-strip, .modal-bg { display: none !important; }
+    .toolbar, .summary-strip, .modal-bg, .login-bg { display: none !important; }
     body { background: #fff; }
     .page { margin: 0; max-width: none; padding: 0; }
     .dimension { border: 0; border-radius: 0; padding: 0; page-break-before: always; }
@@ -82,6 +96,30 @@
 </style>
 </head>
 <body>
+  <!-- Login gate (phone OTP) -->
+  <div class="login-bg" id="loginBg">
+    <div class="login">
+      <h1>Statement of Account</h1>
+      <p>Sign in with your phone number to view the reports.</p>
+
+      <div id="step-phone">
+        <label for="phone-in">Phone number</label>
+        <input id="phone-in" type="tel" inputmode="tel" placeholder="+965 5000 0000" value="+965" autocomplete="tel">
+        <div class="hint">Include your country code (e.g. +965 for Kuwait).</div>
+        <button class="btn" id="sendCode">Send code</button>
+      </div>
+
+      <div id="step-code" style="display:none">
+        <label for="code-in">Enter the 6-digit code</label>
+        <input id="code-in" type="text" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code">
+        <button class="btn" id="verifyCode">Verify &amp; sign in</button>
+        <button class="back" id="changeNumber">← Use a different number</button>
+      </div>
+
+      <div class="msg" id="login-msg"></div>
+    </div>
+  </div>
+
   <div class="toolbar">
     <h1>Statement of Account</h1>
     <div class="field">
@@ -99,6 +137,7 @@
     <div class="spacer"></div>
     <button class="btn ghost" id="uploadBtn">⬆ Upload Excel</button>
     <button class="btn" id="print">⤓ Export PDF</button>
+    <button class="btn ghost" id="logout" title="Sign out">⎋ Sign out</button>
   </div>
 
   <div class="summary-strip" id="summary"><span class="status" id="status">Loading…</span></div>
@@ -385,7 +424,68 @@
     });
     document.getElementById('print').addEventListener('click', () => window.print());
 
-    loadData();
+    // ---------- auth (phone OTP) ----------
+    const loginBg = document.getElementById('loginBg');
+    const stepPhone = document.getElementById('step-phone');
+    const stepCode = document.getElementById('step-code');
+    const phoneIn = document.getElementById('phone-in');
+    const codeIn = document.getElementById('code-in');
+    const loginMsgEl = document.getElementById('login-msg');
+    const loginMsg = (txt, err) => { loginMsgEl.textContent = txt; loginMsgEl.className = 'msg' + (err ? ' err' : ''); };
+    const showLogin = () => loginBg.classList.remove('hidden');
+    const hideLogin = () => loginBg.classList.add('hidden');
+    const showStepPhone = () => { stepPhone.style.display = ''; stepCode.style.display = 'none'; loginMsg(''); };
+    let phoneVal = '';
+
+    async function afterAuth() {
+      const { data: allowed, error } = await sb.rpc('is_allowed_phone');
+      if (error) { loginMsg('Could not verify access: ' + error.message, true); showLogin(); return; }
+      if (!allowed) {
+        loginMsg('This number is not approved for access yet. Contact the administrator.', true);
+        await sb.auth.signOut(); showStepPhone(); showLogin(); return;
+      }
+      hideLogin();
+      await loadData();
+    }
+
+    document.getElementById('sendCode').addEventListener('click', async () => {
+      phoneVal = phoneIn.value.replace(/\s+/g, '').trim();
+      if (!/^\+\d{8,15}$/.test(phoneVal)) { loginMsg('Enter a valid phone in international format, e.g. +96550000000.', true); return; }
+      loginMsg('Sending code…');
+      const { error } = await sb.auth.signInWithOtp({ phone: phoneVal });
+      if (error) { loginMsg('Could not send code: ' + error.message, true); return; }
+      stepPhone.style.display = 'none'; stepCode.style.display = ''; loginMsg('Code sent to ' + phoneVal); codeIn.focus();
+    });
+
+    document.getElementById('verifyCode').addEventListener('click', async () => {
+      const token = codeIn.value.replace(/\D/g, '');
+      if (token.length < 4) { loginMsg('Enter the code from the SMS.', true); return; }
+      loginMsg('Verifying…');
+      const { error } = await sb.auth.verifyOtp({ phone: phoneVal, token, type: 'sms' });
+      if (error) { loginMsg('Invalid or expired code: ' + error.message, true); return; }
+      loginMsg('Signed in.');
+      await afterAuth();
+    });
+
+    document.getElementById('changeNumber').addEventListener('click', showStepPhone);
+    [phoneIn, codeIn].forEach(el => el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById(el === phoneIn ? 'sendCode' : 'verifyCode').click();
+    }));
+
+    document.getElementById('logout').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      DATA = { dimensions: [] };
+      document.getElementById('report').innerHTML = '';
+      document.getElementById('dims').innerHTML = '';
+      setStatus('Signed out.');
+      showStepPhone(); phoneIn.value = '+965'; codeIn.value = ''; showLogin();
+    });
+
+    // bootstrap: show app if already signed in, else show login
+    (async () => {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) await afterAuth(); else showLogin();
+    })();
   })();
   </script>
 </body>
