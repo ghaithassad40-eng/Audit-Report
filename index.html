@@ -130,6 +130,14 @@
   <section class="panel">
     <div class="fgrid">
       <div class="field">
+        <label data-t="text.labels.division">Division</label>
+        <div class="ms">
+          <button type="button" class="ms-box" id="divBox"><span id="divCount">All</span><span>▾</span></button>
+          <div class="ms-menu" id="divMenu"></div>
+        </div>
+        <div class="chips" id="divChips"></div>
+      </div>
+      <div class="field">
         <label><span data-t="text.labels.costDimension">Cost Dimension</span> <i class="info" data-ttitle="text.tooltips.costDimension">i</i></label>
         <div class="ms">
           <button type="button" class="ms-box" id="dimBox"><span id="dimCount">All</span><span>▾</span></button>
@@ -176,7 +184,8 @@
   <!-- Summary strip -->
   <div class="summary" id="summary">
     <div class="sicon">📊</div>
-    <div class="stat first"><div class="lbl" data-t="text.summary.dimensions">Cost dimensions</div><div class="val" id="s-dims">—</div></div>
+    <div class="stat first"><div class="lbl" data-t="text.summary.divisions">Divisions</div><div class="val" id="s-div">—</div></div>
+    <div class="stat"><div class="lbl" data-t="text.summary.dimensions">Cost dimensions</div><div class="val" id="s-dims">—</div></div>
     <div class="stat"><div class="lbl" data-t="text.summary.projects">Projects</div><div class="val" id="s-proj">—</div></div>
     <div class="stat"><div class="lbl" data-t="text.summary.transactions">Transactions</div><div class="val" id="s-tx">—</div></div>
     <div class="stat"><div class="lbl" data-t="text.summary.debit">Debit</div><div class="val deb" id="s-deb">—</div></div>

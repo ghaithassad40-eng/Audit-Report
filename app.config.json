@@ -52,7 +52,7 @@
 
   "docMeta": {
     "accountName": "Account Name", "fromDate": "From Date", "toDate": "To Date",
-    "costDimension": "Cost Dimension", "voucherType": "Voucher Type", "side": "Side",
+    "division": "Division", "costDimension": "Cost Dimension", "voucherType": "Voucher Type", "side": "Side",
     "project": "Project", "voucherNo": "Voucher No",
     "projects": "Projects", "period": "Period", "account": "Account"
   },
@@ -65,7 +65,8 @@
     "dropPrompt": "Drop .xlsx here, or click to choose",
     "noneLabel": "none",
     "selectedSuffix": "Selected",
-    "allLabel": "All"
+    "allLabel": "All",
+    "defaultDivision": "(No Division)"
   },
 
   "text": {
@@ -82,6 +83,7 @@
       "adminLink": "⚙ Admin — manage approved users"
     },
     "labels": {
+      "division": "Division",
       "costDimension": "Cost Dimension",
       "project": "Project Name Contains",
       "voucherNo": "Voucher No (List or Range)",
@@ -92,6 +94,7 @@
       "toDate": "To Date"
     },
     "summary": {
+      "divisions": "Divisions",
       "dimensions": "Cost dimensions",
       "projects": "Projects",
       "transactions": "Transactions",

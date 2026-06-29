@@ -45,9 +45,14 @@ function applyConfig(C) {
     const dimsData = (data && data.dimensions) || [];
     const all = (data && data.transactions) || [];
 
+    // group transactions: Division -> Cost Dimension -> Project
     const dimOrder = new Map(dimsData.map(d => [d.name, d]));
-    const byDim = new Map();
+    const divNum = name => { const m = String(name).match(/(\d+)/); return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER; };
+    const byDiv = new Map();
     for (const r of all) {
+      const div = r.division || MISC.defaultDivision;
+      if (!byDiv.has(div)) byDiv.set(div, new Map());
+      const byDim = byDiv.get(div);
       if (!byDim.has(r.cost_dimension)) byDim.set(r.cost_dimension, new Map());
       const projs = byDim.get(r.cost_dimension);
       if (!projs.has(r.project)) projs.set(r.project, []);
@@ -57,57 +62,68 @@ function applyConfig(C) {
         debit: Number(r.debit), credit: Number(r.credit),
       });
     }
-    const dimensions = [...byDim.entries()].map(([name, projs]) => {
-      const meta = dimOrder.get(name) || {};
-      return {
-        name, order: meta.sort_order ?? 99, account: meta.account || '', from: meta.period_from || '', to: meta.period_to || '',
-        projects: [...projs.entries()].map(([pn, txns]) => ({ name: pn, txns })).sort((a, b) => b.txns.length - a.txns.length),
-      };
-    }).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+    const divisions = [...byDiv.entries()].map(([divName, byDim]) => ({
+      name: divName, order: divNum(divName),
+      dimensions: [...byDim.entries()].map(([dimName, projs]) => {
+        const meta = dimOrder.get(dimName) || {};
+        return {
+          name: dimName, order: meta.sort_order ?? 99, account: meta.account || '', from: meta.period_from || '', to: meta.period_to || '',
+          projects: [...projs.entries()].map(([pn, txns]) => ({ name: pn, txns })).sort((a, b) => b.txns.length - a.txns.length),
+        };
+      }).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name)),
+    })).sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
 
-    DATA = { dimensions };
+    DATA = { divisions };
     buildControls();
     render();
-    if (!dimensions.length) setStatus('No data yet — use “Upload” to add a cost dimension.', '');
+    if (!divisions.length) setStatus('No data yet — use “Upload” to add data.', '');
   }
 
   // ---------- controls ----------
-  function buildControls() {
-    const allDims = DATA.dimensions.map(d => d.name);
-    document.getElementById('dimMenu').innerHTML = allDims.length
-      ? allDims.map(n => `<label><input type="checkbox" class="dimchk" value="${esc(n)}" checked> ${esc(n)}</label>`).join('')
+  // Generic multi-select: builds the checkbox menu and reflects selection as count + chips.
+  function buildMS(values, menuId, chkClass, countId, chipsId) {
+    document.getElementById(menuId).innerHTML = values.length
+      ? values.map(n => `<label><input type="checkbox" class="${chkClass}" value="${esc(n)}" checked> ${esc(n)}</label>`).join('')
       : `<div style="padding:8px;color:#888">${esc(MISC.noneLabel)}</div>`;
-    document.querySelectorAll('.dimchk').forEach(c => c.addEventListener('change', () => { renderDimUI(); render(); }));
-    renderDimUI();
-
-    const projNames = [...new Set(DATA.dimensions.flatMap(d => d.projects.map(p => p.name)))].sort();
-    document.getElementById('projlist').innerHTML = projNames.map(n => `<option value="${esc(n)}">`).join('');
-    const types = [...new Set(DATA.dimensions.flatMap(d => d.projects.flatMap(p => p.txns.map(t => t.type))))].filter(Boolean).sort();
-    document.getElementById('vtype').innerHTML = `<option value="">${esc(MISC.allTypes)}</option>` + types.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
-    let minTs = Infinity, maxTs = -Infinity;
-    DATA.dimensions.forEach(d => d.projects.forEach(p => p.txns.forEach(t => { if (t.ts) { minTs = Math.min(minTs, t.ts); maxTs = Math.max(maxTs, t.ts); } })));
-    const f = document.getElementById('from'), t = document.getElementById('to');
-    if (isFinite(minTs)) { f.min = t.min = tsToInput(minTs); f.max = t.max = tsToInput(maxTs); }
+    document.querySelectorAll('.' + chkClass).forEach(c => c.addEventListener('change', () => { renderMS(chkClass, countId, chipsId); render(); }));
+    renderMS(chkClass, countId, chipsId);
   }
-
-  function renderDimUI() {
-    const all = [...document.querySelectorAll('.dimchk')];
+  function renderMS(chkClass, countId, chipsId) {
+    const all = [...document.querySelectorAll('.' + chkClass)];
     const checked = all.filter(c => c.checked);
-    document.getElementById('dimCount').textContent =
+    document.getElementById(countId).textContent =
       !all.length ? MISC.noneLabel : checked.length === all.length ? `All (${all.length})` : `${checked.length} ${MISC.selectedSuffix}`;
     const MAX = 4;
     let html = checked.slice(0, MAX).map(c => `<span class="chip">${esc(c.value)} <b data-unchk="${esc(c.value)}">✕</b></span>`).join('');
     if (checked.length > MAX) html += `<span class="chip more">+${checked.length - MAX}</span>`;
-    const chips = document.getElementById('dimChips');
+    const chips = document.getElementById(chipsId);
     chips.innerHTML = html;
     chips.querySelectorAll('[data-unchk]').forEach(x => x.addEventListener('click', () => {
-      const cb = [...document.querySelectorAll('.dimchk')].find(c => c.value === x.dataset.unchk);
-      if (cb) { cb.checked = false; renderDimUI(); render(); }
+      const cb = all.find(c => c.value === x.dataset.unchk);
+      if (cb) { cb.checked = false; renderMS(chkClass, countId, chipsId); render(); }
     }));
+  }
+
+  function buildControls() {
+    const allDivs = DATA.divisions.map(d => d.name);
+    const allDims = [...new Set(DATA.divisions.flatMap(d => d.dimensions.map(x => x.name)))];
+    buildMS(allDivs, 'divMenu', 'divchk', 'divCount', 'divChips');
+    buildMS(allDims, 'dimMenu', 'dimchk', 'dimCount', 'dimChips');
+
+    const allProjs = DATA.divisions.flatMap(d => d.dimensions.flatMap(x => x.projects));
+    const projNames = [...new Set(allProjs.map(p => p.name))].sort();
+    document.getElementById('projlist').innerHTML = projNames.map(n => `<option value="${esc(n)}">`).join('');
+    const types = [...new Set(allProjs.flatMap(p => p.txns.map(t => t.type)))].filter(Boolean).sort();
+    document.getElementById('vtype').innerHTML = `<option value="">${esc(MISC.allTypes)}</option>` + types.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+    let minTs = Infinity, maxTs = -Infinity;
+    allProjs.forEach(p => p.txns.forEach(t => { if (t.ts) { minTs = Math.min(minTs, t.ts); maxTs = Math.max(maxTs, t.ts); } }));
+    const f = document.getElementById('from'), t = document.getElementById('to');
+    if (isFinite(minTs)) { f.min = t.min = tsToInput(minTs); f.max = t.max = tsToInput(maxTs); }
   }
 
   function currentFilters() {
     return {
+      divs: new Set([...document.querySelectorAll('.divchk:checked')].map(c => c.value)),
       dims: new Set([...document.querySelectorAll('.dimchk:checked')].map(c => c.value)),
       q: document.getElementById('proj').value.trim().toLowerCase(),
       rsearch: document.getElementById('reportSearch').value.trim().toLowerCase(),
@@ -140,7 +156,8 @@ function applyConfig(C) {
 
   function filtersSummary(f, gP, gT, net) {
     const L = CONFIG.text.labels, S = CONFIG.text.summary;
-    const parts = [S.dimensions + ': ' + ([...f.dims].join(', ') || MISC.noneLabel)];
+    const parts = [S.divisions + ': ' + ([...f.divs].join(', ') || MISC.noneLabel),
+                   S.dimensions + ': ' + ([...f.dims].join(', ') || MISC.noneLabel)];
     if (f.q) parts.push(L.project + ': "' + f.q + '"');
     if (f.nos.length) parts.push(L.voucherNo + ': ' + f.nos.join(', '));
     if (f.vtype) parts.push(L.voucherType + ': ' + f.vtype);
@@ -158,70 +175,91 @@ function applyConfig(C) {
     return '<thead><tr>' + TBL.projectsSummary.map((h, i) => `<th${i === 2 ? ' class="num"' : i >= 3 ? ' class="amt"' : ''}>${esc(h)}</th>`).join('') + '</tr></thead>';
   }
 
-  function render() {
+  function dimensionBlock(division, d) {
     const f = currentFilters();
     const noMatch = buildNoMatch(f.nos);
-    let gD = 0, gC = 0, gT = 0, gP = 0;
+    const projHtml = [], summaryRows = [];
+    let dD = 0, dC = 0, dT = 0;
+
+    d.projects.forEach(p => {
+      if (f.q && !p.name.toLowerCase().includes(f.q)) return;
+      if (f.rsearch && !p.name.toLowerCase().includes(f.rsearch)) return;
+      const txns = p.txns.filter(t => matchTxn(t, f, noMatch));
+      if (!txns.length) return;
+      let bal = 0, td = 0, tc = 0;
+      const rows = txns.map(t => {
+        bal += t.debit - t.credit; td += t.debit; tc += t.credit;
+        return `<tr><td class="date">${esc(t.date)}</td><td dir="auto">${esc(t.type)}</td>
+          <td class="num">${esc(t.no)}</td><td dir="auto">${esc(t.ref)}</td><td dir="auto" class="memo">${esc(t.memo)}</td>
+          <td class="amt">${t.debit ? fmt(t.debit) : ''}</td><td class="amt">${t.credit ? fmt(t.credit) : ''}</td>
+          <td class="amt ${bal < 0 ? 'neg' : ''}">${fmt(bal)}</td></tr>`;
+      }).join('');
+      const net = td - tc;
+      dD += td; dC += tc; dT += txns.length;
+      const idx = summaryRows.length + 1;
+      summaryRows.push(`<tr><td class="num">${idx}</td><td dir="auto" class="pname">${esc(p.name)}</td>
+        <td class="num">${txns.length}</td><td class="amt">${fmt(td)}</td><td class="amt">${fmt(tc)}</td>
+        <td class="amt ${net < 0 ? 'neg' : ''}">${fmt(net)}</td></tr>`);
+      projHtml.push(`<section class="project">
+        <div class="ph"><span class="pidx">${esc(d.name)} · ${idx}.</span> <span dir="auto">${esc(p.name)}</span></div>
+        <div class="soa-label">${esc(MISC.statementOfAccount)}</div>
+        <table class="soa">${soaHead()}
+          <tbody>${rows}</tbody>
+          <tfoot><tr class="totals"><td colspan="5">Total — ${txns.length} transaction(s)</td>
+            <td class="amt">${fmt(td)}</td><td class="amt">${fmt(tc)}</td>
+            <td class="amt ${net < 0 ? 'neg' : ''}">${fmt(net)}</td></tr></tfoot>
+        </table></section>`);
+    });
+
+    if (!summaryRows.length) return null;
+    const html = `<div class="dimension">
+      <div class="dimhead"><span class="dimname">${esc(d.name)}</span>
+        <button class="btn-export" data-div="${esc(division.name)}" data-dim="${esc(d.name)}">${esc(MISC.exportToExcel)}</button></div>
+      <div class="dimbody">
+        <div class="dimmeta"><span>${esc(DM.account)}: ${esc(d.account)}</span><span>${esc(DM.period)}: ${esc(d.from)} – ${esc(d.to)}</span><span>${esc(DM.projects)}: ${summaryRows.length}</span></div>
+        <div class="ptitle">${esc(MISC.projectsSummaryTitle)}</div>
+        <table class="ptbl">${ptblHead()}
+          <tbody>${summaryRows.join('')}</tbody>
+          <tfoot><tr><td colspan="2">${esc(d.name)} Total</td><td class="num">${dT}</td>
+            <td class="amt">${fmt(dD)}</td><td class="amt">${fmt(dC)}</td>
+            <td class="amt ${dD - dC < 0 ? 'neg' : ''}">${fmt(dD - dC)}</td></tr></tfoot>
+        </table>
+        ${projHtml.join('')}
+      </div>
+    </div>`;
+    return { html, dD, dC, dT, projects: summaryRows.length };
+  }
+
+  function render() {
+    const f = currentFilters();
+    let gD = 0, gC = 0, gT = 0, gP = 0, gDiv = 0;
+    const dimNamesShown = new Set();
     const out = [];
 
-    DATA.dimensions.forEach(d => {
-      if (!f.dims.has(d.name)) return;
-      const projHtml = [], summaryRows = [];
-      let dD = 0, dC = 0, dT = 0;
-
-      d.projects.forEach(p => {
-        if (f.q && !p.name.toLowerCase().includes(f.q)) return;
-        if (f.rsearch && !p.name.toLowerCase().includes(f.rsearch)) return;
-        const txns = p.txns.filter(t => matchTxn(t, f, noMatch));
-        if (!txns.length) return;
-        let bal = 0, td = 0, tc = 0;
-        const rows = txns.map(t => {
-          bal += t.debit - t.credit; td += t.debit; tc += t.credit;
-          return `<tr><td class="date">${esc(t.date)}</td><td dir="auto">${esc(t.type)}</td>
-            <td class="num">${esc(t.no)}</td><td dir="auto">${esc(t.ref)}</td><td dir="auto" class="memo">${esc(t.memo)}</td>
-            <td class="amt">${t.debit ? fmt(t.debit) : ''}</td><td class="amt">${t.credit ? fmt(t.credit) : ''}</td>
-            <td class="amt ${bal < 0 ? 'neg' : ''}">${fmt(bal)}</td></tr>`;
-        }).join('');
-        const net = td - tc;
-        dD += td; dC += tc; dT += txns.length;
-        const idx = summaryRows.length + 1;
-        summaryRows.push(`<tr><td class="num">${idx}</td><td dir="auto" class="pname">${esc(p.name)}</td>
-          <td class="num">${txns.length}</td><td class="amt">${fmt(td)}</td><td class="amt">${fmt(tc)}</td>
-          <td class="amt ${net < 0 ? 'neg' : ''}">${fmt(net)}</td></tr>`);
-        projHtml.push(`<section class="project">
-          <div class="ph"><span class="pidx">${esc(d.name)} · ${idx}.</span> <span dir="auto">${esc(p.name)}</span></div>
-          <div class="soa-label">${esc(MISC.statementOfAccount)}</div>
-          <table class="soa">${soaHead()}
-            <tbody>${rows}</tbody>
-            <tfoot><tr class="totals"><td colspan="5">Total — ${txns.length} transaction(s)</td>
-              <td class="amt">${fmt(td)}</td><td class="amt">${fmt(tc)}</td>
-              <td class="amt ${net < 0 ? 'neg' : ''}">${fmt(net)}</td></tr></tfoot>
-          </table></section>`);
+    DATA.divisions.forEach(division => {
+      if (!f.divs.has(division.name)) return;
+      const dimBlocks = [];
+      division.dimensions.forEach(d => {
+        if (!f.dims.has(d.name)) return;
+        const block = dimensionBlock(division, d);
+        if (!block) return;
+        gD += block.dD; gC += block.dC; gT += block.dT; gP += block.projects;
+        dimNamesShown.add(d.name);
+        dimBlocks.push(block.html);
       });
-
-      if (!summaryRows.length) return;
-      gD += dD; gC += dC; gT += dT; gP += summaryRows.length;
-      out.push(`<div class="dimension">
-        <div class="dimhead"><span class="dimname">${esc(d.name)}</span>
-          <button class="btn-export" data-dim="${esc(d.name)}">${esc(MISC.exportToExcel)}</button></div>
-        <div class="dimbody">
-          <div class="dimmeta"><span>${esc(DM.account)}: ${esc(d.account)}</span><span>${esc(DM.period)}: ${esc(d.from)} – ${esc(d.to)}</span><span>${esc(DM.projects)}: ${summaryRows.length}</span></div>
-          <div class="ptitle">${esc(MISC.projectsSummaryTitle)}</div>
-          <table class="ptbl">${ptblHead()}
-            <tbody>${summaryRows.join('')}</tbody>
-            <tfoot><tr><td colspan="2">${esc(d.name)} Total</td><td class="num">${dT}</td>
-              <td class="amt">${fmt(dD)}</td><td class="amt">${fmt(dC)}</td>
-              <td class="amt ${dD - dC < 0 ? 'neg' : ''}">${fmt(dD - dC)}</td></tr></tfoot>
-          </table>
-          ${projHtml.join('')}
-        </div>
+      if (!dimBlocks.length) return;
+      gDiv++;
+      out.push(`<div class="division-group">
+        <div class="divhead">${esc(division.name)} <span class="divcount">${dimBlocks.length} ${DM.costDimension.toLowerCase()}(s)</span></div>
+        ${dimBlocks.join('')}
       </div>`);
     });
 
     document.getElementById('report').innerHTML = out.length ? out.join('') :
-      (DATA.dimensions.length ? '<div class="empty">No transactions match the current filters.</div>' : '');
+      (DATA.divisions.length ? '<div class="empty">No transactions match the current filters.</div>' : '');
 
-    document.getElementById('s-dims').textContent = [...f.dims].length;
+    document.getElementById('s-div').textContent = gDiv;
+    document.getElementById('s-dims').textContent = dimNamesShown.size;
     document.getElementById('s-proj').textContent = gP;
     document.getElementById('s-tx').textContent = gT.toLocaleString();
     document.getElementById('s-deb').textContent = fmt(gD);
@@ -230,15 +268,18 @@ function applyConfig(C) {
     setStatus('');
 
     // Header metadata reflects the active filters.
-    const m0 = DATA.dimensions[0] || {};
+    const anyDim = (DATA.divisions[0] && DATA.divisions[0].dimensions[0]) || {};
     const ALL = MISC.allLabel;
     const tsToDMY = ts => { const s = String(ts); return s.length === 8 ? s.slice(6, 8) + '/' + s.slice(4, 6) + '/' + s.slice(0, 4) : ''; };
-    const dimsAll = f.dims.size === DATA.dimensions.length;
+    const divsAll = f.divs.size === DATA.divisions.length;
+    const allDimNames = new Set(DATA.divisions.flatMap(d => d.dimensions.map(x => x.name)));
+    const dimsAll = f.dims.size === allDimNames.size;
     const sideLabel = (CONFIG.sides.find(s => s.value === f.side) || {}).label || ALL;
     const metaRows = [
-      [DM.accountName, m0.account || ''],
-      [DM.fromDate, f.from ? tsToDMY(f.from) : (m0.from || '')],
-      [DM.toDate, f.to ? tsToDMY(f.to) : (m0.to || '')],
+      [DM.accountName, anyDim.account || ''],
+      [DM.fromDate, f.from ? tsToDMY(f.from) : (anyDim.from || '')],
+      [DM.toDate, f.to ? tsToDMY(f.to) : (anyDim.to || '')],
+      [DM.division, divsAll ? ALL : ([...f.divs].join(', ') || ALL)],
       [DM.costDimension, dimsAll ? ALL : ([...f.dims].join(', ') || ALL)],
       [DM.voucherType, f.vtype || ALL],
       [DM.side, sideLabel],
@@ -253,33 +294,38 @@ function applyConfig(C) {
   }
 
   // ---------- export to Excel ----------
-  function exportDimension(name) {
-    const d = DATA.dimensions.find(x => x.name === name); if (!d) return;
-    const f = currentFilters(); const noMatch = buildNoMatch(f.nos);
+  function rowsForDimension(d, f, noMatch) {
     const aoa = [TBL.excel.slice()];
     d.projects.forEach(p => {
       if (f.q && !p.name.toLowerCase().includes(f.q)) return;
       if (f.rsearch && !p.name.toLowerCase().includes(f.rsearch)) return;
-      const txns = p.txns.filter(t => matchTxn(t, f, noMatch));
-      let bal = 0;
+      const txns = p.txns.filter(t => matchTxn(t, f, noMatch)); let bal = 0;
       txns.forEach(t => { bal += t.debit - t.credit; aoa.push([p.name, t.date, t.type, t.no, t.ref, t.memo, t.debit, t.credit, bal]); });
     });
+    return aoa;
+  }
+  function exportDimension(divName, dimName) {
+    const division = DATA.divisions.find(x => x.name === divName); if (!division) return;
+    const d = division.dimensions.find(x => x.name === dimName); if (!d) return;
+    const f = currentFilters();
+    const aoa = rowsForDimension(d, f, buildNoMatch(f.nos));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), name.slice(0, 31).replace(/[\\/?*\[\]:]/g, ' '));
-    XLSX.writeFile(wb, name.replace(/[^\w]+/g, '_') + '.xlsx');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), dimName.slice(0, 31).replace(/[\\/?*\[\]:]/g, ' '));
+    XLSX.writeFile(wb, (divName + '_' + dimName).replace(/[^\w]+/g, '_') + '.xlsx');
   }
   function exportAllExcel() {
     const f = currentFilters(), noMatch = buildNoMatch(f.nos), wb = XLSX.utils.book_new(), used = {}; let any = false;
-    DATA.dimensions.forEach(d => {
-      if (!f.dims.has(d.name)) return;
-      const aoa = [TBL.excel.slice()];
-      d.projects.forEach(p => {
-        if (f.q && !p.name.toLowerCase().includes(f.q)) return;
-        if (f.rsearch && !p.name.toLowerCase().includes(f.rsearch)) return;
-        const txns = p.txns.filter(t => matchTxn(t, f, noMatch)); let bal = 0;
-        txns.forEach(t => { bal += t.debit - t.credit; aoa.push([p.name, t.date, t.type, t.no, t.ref, t.memo, t.debit, t.credit, bal]); });
+    DATA.divisions.forEach(division => {
+      if (!f.divs.has(division.name)) return;
+      division.dimensions.forEach(d => {
+        if (!f.dims.has(d.name)) return;
+        const aoa = rowsForDimension(d, f, noMatch);
+        if (aoa.length > 1) {
+          let nm = (division.name + ' ' + d.name).slice(0, 28).replace(/[\\/?*\[\]:]/g, ' ');
+          if (used[nm]) nm = nm.slice(0, 25) + (++used[nm]); else used[nm] = 1;
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nm); any = true;
+        }
       });
-      if (aoa.length > 1) { let nm = d.name.slice(0, 28).replace(/[\\/?*\[\]:]/g, ' '); if (used[nm]) nm = nm.slice(0, 25) + (++used[nm]); else used[nm] = 1; XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nm); any = true; }
     });
     if (any) XLSX.writeFile(wb, CONFIG.report.exportFileName + '.xlsx'); else alert('No rows to export with the current filters.');
   }
@@ -293,16 +339,23 @@ function applyConfig(C) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = CONFIG.report.exportFileName + '.doc'; a.click(); URL.revokeObjectURL(a.href);
   }
   document.getElementById('report').addEventListener('click', e => {
-    const b = e.target.closest('.btn-export'); if (b) exportDimension(b.dataset.dim);
+    const b = e.target.closest('.btn-export'); if (b) exportDimension(b.dataset.div, b.dataset.dim);
   });
 
-  // ---------- multi-select dropdown ----------
-  const dimBox = document.getElementById('dimBox'), dimMenu = document.getElementById('dimMenu');
-  dimBox.addEventListener('click', e => { e.stopPropagation(); dimMenu.classList.toggle('open'); });
-  dimMenu.addEventListener('click', e => e.stopPropagation());
-  document.addEventListener('click', () => dimMenu.classList.remove('open'));
+  // ---------- multi-select dropdowns ----------
+  [['divBox', 'divMenu'], ['dimBox', 'dimMenu']].forEach(([boxId, menuId]) => {
+    const box = document.getElementById(boxId), menu = document.getElementById(menuId);
+    box.addEventListener('click', e => { e.stopPropagation(); menu.classList.toggle('open'); });
+    menu.addEventListener('click', e => e.stopPropagation());
+  });
+  document.addEventListener('click', () => { document.getElementById('divMenu').classList.remove('open'); document.getElementById('dimMenu').classList.remove('open'); });
 
   // ---------- in-browser Excel parsing ----------
+  // Division from the Excel "Division" header (typo-tolerant). Empty when absent —
+  // stored as '' in the DB (so re-uploads replace cleanly) and shown as the default label.
+  function resolveDivision(meta) {
+    return String(meta.division || '').trim().replace(/Divison/gi, 'Division');
+  }
   function resolveDimension(meta, fname) {
     const candidates = [meta.costDimension || '', fname.replace(/\.xlsx$/i, '')];
     for (let i = 0; i < DIMS.length; i++) {
@@ -325,7 +378,7 @@ function applyConfig(C) {
   function parseWorkbook(fname, wb) {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
-    const LABELS = { 'account name': 'account', 'from date': 'from', 'to date': 'to', 'cost dimesion': 'costDimension', 'cost dimension': 'costDimension' };
+    const LABELS = { 'account name': 'account', 'from date': 'from', 'to date': 'to', 'cost dimesion': 'costDimension', 'cost dimension': 'costDimension', 'division': 'division' };
     const meta = {}; let hdr = -1;
     for (let i = 0; i < rows.length; i++) {
       const cells = rows[i].map(c => String(c).trim());
@@ -377,14 +430,16 @@ function applyConfig(C) {
       const wb = XLSX.read(buf, { type: 'array' });
       const { meta, rows } = parseWorkbook(picked.name, wb);
       const dim = resolveDimension(meta, picked.name);
-      msg.textContent = `Parsed ${rows.length} rows → ${dim.name}. Uploading…`;
+      const division = resolveDivision(meta);
+      const divLabel = division || MISC.defaultDivision;
+      msg.textContent = `Parsed ${rows.length} rows → ${divLabel} / ${dim.name}. Uploading…`;
       const res = await fetch(cfg.ingestUrl, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'apikey': cfg.anonKey },
-        body: JSON.stringify({ secret: keyInput.value.trim(), dimension: dim.name, sort_order: dim.order, account: meta.account || '', from: meta.from || '', to: meta.to || '', rows }),
+        body: JSON.stringify({ secret: keyInput.value.trim(), division, dimension: dim.name, sort_order: dim.order, account: meta.account || '', from: meta.from || '', to: meta.to || '', rows }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || ('HTTP ' + res.status));
-      msg.style.color = '#1a7f37'; msg.textContent = `Saved ${body.inserted} rows to ${body.dimension}.`;
+      msg.style.color = '#1a7f37'; msg.textContent = `Saved ${body.inserted} rows to ${divLabel} / ${body.dimension}.`;
       await loadData();
       setTimeout(closeModal, 900);
     } catch (e) { msg.style.color = '#b00020'; msg.textContent = 'Failed: ' + e.message; doUpload.disabled = false; }
@@ -398,9 +453,9 @@ function applyConfig(C) {
   document.getElementById('apply').addEventListener('click', render);
   document.getElementById('moreFilters').addEventListener('click', () => document.getElementById('row2').classList.toggle('hidden'));
   document.getElementById('reset').addEventListener('click', () => {
-    document.querySelectorAll('.dimchk').forEach(c => c.checked = true);
+    document.querySelectorAll('.divchk, .dimchk').forEach(c => c.checked = true);
     ['proj', 'vno', 'search', 'from', 'to', 'vtype', 'side', 'reportSearch'].forEach(id => document.getElementById(id).value = '');
-    renderDimUI(); render();
+    renderMS('divchk', 'divCount', 'divChips'); renderMS('dimchk', 'dimCount', 'dimChips'); render();
   });
 
   // ---------- report viewer toolbar ----------
