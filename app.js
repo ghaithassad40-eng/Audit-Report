@@ -411,7 +411,9 @@ function applyConfig(C) {
   function parseWorkbook(fname, wb) {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
-    const LABELS = { 'account name': 'account', 'from date': 'from', 'to date': 'to', 'cost dimesion': 'costDimension', 'cost dimension': 'costDimension', 'division': 'division' };
+    const LABELS = { 'account name': 'account', 'from date': 'from', 'to date': 'to',
+                     'cost dimesion': 'costDimension', 'cost dimension': 'costDimension', 'cost dimesnion': 'costDimension',
+                     'division': 'division' };
     const meta = {}; let hdr = -1;
     for (let i = 0; i < rows.length; i++) {
       const cells = rows[i].map(c => String(c).trim());
