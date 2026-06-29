@@ -10,10 +10,10 @@
   },
 
   "report": {
-    "title": "Detailed Statement by Cost Dimension",
+    "title": "Detailed Statement by Analytical Account",
     "subtitle": "View detailed financial transactions grouped by cost dimension.",
     "documentTitle": "Statement Of Account",
-    "exportFileName": "Detailed_Statement_by_Cost_Dimension"
+    "exportFileName": "Detailed_Statement_by_Analytical_Account"
   },
 
   "brand": {
