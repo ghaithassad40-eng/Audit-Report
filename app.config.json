@@ -85,7 +85,7 @@
     "labels": {
       "division": "Division",
       "costDimension": "Cost Dimension",
-      "project": "Project Name Contains",
+      "project": "Cost Centers",
       "voucherNo": "Voucher No (List or Range)",
       "voucherType": "Voucher Type",
       "side": "Side",
