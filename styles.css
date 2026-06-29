@@ -255,22 +255,32 @@ body.dark .vmenu, body.dark .ms-menu { background: #13203a; border-color: #283a5
 #printHeader h1 { font-size: 18px; color: var(--navy); margin: 0 0 4px; }
 #printHeader .pf { font-size: 11px; color: #444; margin-bottom: 2px; }
 
-@page { margin: 36mm 12mm 18mm; }
+@page { margin: 12mm 12mm 14mm; }
 @media print {
   .topbar, .pagehead, .vtoolbar, .panel, .summary, .modal-bg, .login-bg { display: none !important; }
   body { background: #fff; }
   .docwrap { margin: 0; padding: 0; height: auto; overflow: visible; background: #fff; border: 0; }
   .doc { box-shadow: none; max-width: none; margin: 0; padding: 0; zoom: 1 !important; }
   .print-only { display: block; }
-  .letterhead { position: fixed; top: 4mm; left: 12mm; right: 12mm; margin: 0; padding-bottom: 2mm; background: #fff; min-height: 0; }
+  /* letterhead flows on page 1 (no fixed positioning -> no overlap); compact so the title fits one line */
+  .lh-spacer { display: none; }
+  .lh-logo-block { flex: 0 0 auto; gap: 8px; }
+  .letterhead { padding-bottom: 6px; margin-bottom: 8px; }
   .letterhead .lh-logo { height: 42px; }
-  .letterhead .lh-brand .lh-ar, .letterhead .lh-brand .lh-en { font-size: 10px; }
-  .letterhead .lh-brand .lh-ar-sub, .letterhead .lh-brand .lh-en-sub { font-size: 6px; }
-  .letterhead .lh-company { font-size: 16px; }
-  .letterhead .lh-doctype { font-size: 13px; margin-top: 3px; }
-  .print-footer { display: flex !important; justify-content: space-between; align-items: center; position: fixed; left: 12mm; right: 12mm; bottom: 9mm; font-size: 10px; color: #555; border-top: 1px solid #c9d0d8; padding-top: 4px; }
+  .lh-brand .lh-ar, .lh-brand .lh-en { font-size: 10px; }
+  .lh-brand .lh-ar-sub, .lh-brand .lh-en-sub { font-size: 6px; }
+  .lh-company { font-size: 16px; line-height: 1.15; }
+  .lh-doctype { font-size: 13px; margin-top: 2px; }
+  .doc-meta-tbl { font-size: 11px; margin: 4px 0 10px; }
+  .doc-meta-tbl td { padding: 4px 4px; }
+  .doc-meta-tbl td.lbl { width: 160px; }
+  #printHeader h1 { display: none; }
+  #printHeader .pf { margin-bottom: 10px; color: #555; }
+  .print-footer { display: flex !important; justify-content: space-between; align-items: center; font-size: 9px; color: #555; border-top: 1px solid #c9d0d8; padding-top: 4px; margin-top: 12px; }
   .dimension { border: 0; border-radius: 0; margin: 0; page-break-before: always; }
   .dimension:first-child { page-break-before: avoid; }
   .btn-export { display: none; }
   table.soa thead th { position: static; }
+  table.ptbl tr, table.soa tr { page-break-inside: avoid; }
+  .ph { page-break-after: avoid; }
 }
