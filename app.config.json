@@ -103,6 +103,7 @@
       "net": "Net"
     },
     "save": { "pdf": "PDF", "excel": "Excel", "word": "Word" },
+    "groupBy": { "label": "Group by:", "byDivision": "Division", "byDimension": "Cost Dimension" },
     "login": {
       "title": "Statement of Account",
       "subtitle": "Sign in to view the reports.",

@@ -35,7 +35,8 @@ function applyConfig(C) {
   const tsToInput = ts => { const s = String(ts); return s.length === 8 ? s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8) : ''; };
   const setStatus = (txt, cls) => { const el = document.getElementById('status'); el.textContent = txt || ''; el.className = 'status' + (cls ? ' ' + cls : ''); };
 
-  let DATA = { dimensions: [] };
+  let DATA = { divisions: [] };
+  let groupBy = 'dimension';   // 'dimension' | 'division'
 
   // ---------- load ----------
   async function loadData() {
@@ -175,16 +176,16 @@ function applyConfig(C) {
     return '<thead><tr>' + TBL.projectsSummary.map((h, i) => `<th${i === 2 ? ' class="num"' : i >= 3 ? ' class="amt"' : ''}>${esc(h)}</th>`).join('') + '</tr></thead>';
   }
 
-  function dimensionBlock(division, d) {
-    const f = currentFilters();
-    const noMatch = buildNoMatch(f.nos);
+  // Render one group block (a Division or a Cost Dimension) with its merged projects.
+  function groupBlock(name, projectsMap, f, noMatch, meta) {
     const projHtml = [], summaryRows = [];
     let dD = 0, dC = 0, dT = 0;
+    const projs = [...projectsMap.entries()].sort((a, b) => b[1].length - a[1].length);
 
-    d.projects.forEach(p => {
-      if (f.q && !p.name.toLowerCase().includes(f.q)) return;
-      if (f.rsearch && !p.name.toLowerCase().includes(f.rsearch)) return;
-      const txns = p.txns.filter(t => matchTxn(t, f, noMatch));
+    projs.forEach(([pname, allTxns]) => {
+      if (f.q && !pname.toLowerCase().includes(f.q)) return;
+      if (f.rsearch && !pname.toLowerCase().includes(f.rsearch)) return;
+      const txns = allTxns.filter(t => matchTxn(t, f, noMatch)).sort((a, b) => (a.ts - b.ts));
       if (!txns.length) return;
       let bal = 0, td = 0, tc = 0;
       const rows = txns.map(t => {
@@ -197,11 +198,11 @@ function applyConfig(C) {
       const net = td - tc;
       dD += td; dC += tc; dT += txns.length;
       const idx = summaryRows.length + 1;
-      summaryRows.push(`<tr><td class="num">${idx}</td><td dir="auto" class="pname">${esc(p.name)}</td>
+      summaryRows.push(`<tr><td class="num">${idx}</td><td dir="auto" class="pname">${esc(pname)}</td>
         <td class="num">${txns.length}</td><td class="amt">${fmt(td)}</td><td class="amt">${fmt(tc)}</td>
         <td class="amt ${net < 0 ? 'neg' : ''}">${fmt(net)}</td></tr>`);
       projHtml.push(`<section class="project">
-        <div class="ph"><span class="pidx">${esc(d.name)} · ${idx}.</span> <span dir="auto">${esc(p.name)}</span></div>
+        <div class="ph"><span class="pidx">${esc(name)} · ${idx}.</span> <span dir="auto">${esc(pname)}</span></div>
         <div class="soa-label">${esc(MISC.statementOfAccount)}</div>
         <table class="soa">${soaHead()}
           <tbody>${rows}</tbody>
@@ -213,14 +214,14 @@ function applyConfig(C) {
 
     if (!summaryRows.length) return null;
     const html = `<div class="dimension">
-      <div class="dimhead"><span class="dimname">${esc(d.name)}</span>
-        <button class="btn-export" data-div="${esc(division.name)}" data-dim="${esc(d.name)}">${esc(MISC.exportToExcel)}</button></div>
+      <div class="dimhead"><span class="dimname">${esc(name)}</span>
+        <button class="btn-export" data-group="${esc(name)}">${esc(MISC.exportToExcel)}</button></div>
       <div class="dimbody">
-        <div class="dimmeta"><span>${esc(DM.account)}: ${esc(d.account)}</span><span>${esc(DM.period)}: ${esc(d.from)} – ${esc(d.to)}</span><span>${esc(DM.projects)}: ${summaryRows.length}</span></div>
+        <div class="dimmeta"><span>${esc(DM.account)}: ${esc(meta.account || '')}</span><span>${esc(DM.period)}: ${esc(meta.from || '')} – ${esc(meta.to || '')}</span><span>${esc(DM.projects)}: ${summaryRows.length}</span></div>
         <div class="ptitle">${esc(MISC.projectsSummaryTitle)}</div>
         <table class="ptbl">${ptblHead()}
           <tbody>${summaryRows.join('')}</tbody>
-          <tfoot><tr><td colspan="2">${esc(d.name)} Total</td><td class="num">${dT}</td>
+          <tfoot><tr><td colspan="2">${esc(name)} Total</td><td class="num">${dT}</td>
             <td class="amt">${fmt(dD)}</td><td class="amt">${fmt(dC)}</td>
             <td class="amt ${dD - dC < 0 ? 'neg' : ''}">${fmt(dD - dC)}</td></tr></tfoot>
         </table>
@@ -230,36 +231,58 @@ function applyConfig(C) {
     return { html, dD, dC, dT, projects: summaryRows.length };
   }
 
+  // Collapse the data to a single grouping level (Division OR Cost Dimension).
+  function buildGroups(f) {
+    const index = new Map(), list = [];
+    const get = (nm, order) => { if (!index.has(nm)) { const g = { name: nm, order, projects: new Map() }; index.set(nm, g); list.push(g); } return index.get(nm); };
+    DATA.divisions.forEach(div => {
+      if (!f.divs.has(div.name)) return;
+      div.dimensions.forEach(dim => {
+        if (!f.dims.has(dim.name)) return;
+        const g = groupBy === 'division' ? get(div.name, div.order) : get(dim.name, dim.order);
+        dim.projects.forEach(p => {
+          if (!g.projects.has(p.name)) g.projects.set(p.name, []);
+          const arr = g.projects.get(p.name);
+          for (const t of p.txns) arr.push(t);
+        });
+      });
+    });
+    list.sort((a, b) => a.order - b.order || String(a.name).localeCompare(String(b.name)));
+    return list;
+  }
+
   function render() {
     const f = currentFilters();
-    let gD = 0, gC = 0, gT = 0, gP = 0, gDiv = 0;
-    const dimNamesShown = new Set();
-    const out = [];
+    const noMatch = buildNoMatch(f.nos);
+    const meta = (DATA.divisions[0] && DATA.divisions[0].dimensions[0]) || {};
+    let gD = 0, gC = 0, gT = 0, gP = 0;
+    const divSet = new Set(), dimSet = new Set();
 
-    DATA.divisions.forEach(division => {
-      if (!f.divs.has(division.name)) return;
-      const dimBlocks = [];
-      division.dimensions.forEach(d => {
-        if (!f.dims.has(d.name)) return;
-        const block = dimensionBlock(division, d);
-        if (!block) return;
-        gD += block.dD; gC += block.dC; gT += block.dT; gP += block.projects;
-        dimNamesShown.add(d.name);
-        dimBlocks.push(block.html);
+    // distinct divisions / cost dimensions that actually have matching rows
+    DATA.divisions.forEach(div => {
+      if (!f.divs.has(div.name)) return;
+      div.dimensions.forEach(dim => {
+        if (!f.dims.has(dim.name)) return;
+        const has = dim.projects.some(p =>
+          (!f.q || p.name.toLowerCase().includes(f.q)) && (!f.rsearch || p.name.toLowerCase().includes(f.rsearch)) &&
+          p.txns.some(t => matchTxn(t, f, noMatch)));
+        if (has) { divSet.add(div.name); dimSet.add(dim.name); }
       });
-      if (!dimBlocks.length) return;
-      gDiv++;
-      out.push(`<div class="division-group">
-        <div class="divhead">${esc(division.name)} <span class="divcount">${dimBlocks.length} ${DM.costDimension.toLowerCase()}(s)</span></div>
-        ${dimBlocks.join('')}
-      </div>`);
+    });
+
+    const out = [];
+    buildGroups(f).forEach(g => {
+      const block = groupBlock(g.name, g.projects, f, noMatch, meta);
+      if (!block) return;
+      gD += block.dD; gC += block.dC; gT += block.dT; gP += block.projects;
+      out.push(block.html);
     });
 
     document.getElementById('report').innerHTML = out.length ? out.join('') :
       (DATA.divisions.length ? '<div class="empty">No transactions match the current filters.</div>' : '');
 
-    document.getElementById('s-div').textContent = gDiv;
-    document.getElementById('s-dims').textContent = dimNamesShown.size;
+    document.getElementById('s-div').textContent = divSet.size;
+    document.getElementById('s-dims').textContent = dimSet.size;
     document.getElementById('s-proj').textContent = gP;
     document.getElementById('s-tx').textContent = gT.toLocaleString();
     document.getElementById('s-deb').textContent = fmt(gD);
@@ -268,7 +291,7 @@ function applyConfig(C) {
     setStatus('');
 
     // Header metadata reflects the active filters.
-    const anyDim = (DATA.divisions[0] && DATA.divisions[0].dimensions[0]) || {};
+    const anyDim = meta;
     const ALL = MISC.allLabel;
     const tsToDMY = ts => { const s = String(ts); return s.length === 8 ? s.slice(6, 8) + '/' + s.slice(4, 6) + '/' + s.slice(0, 4) : ''; };
     const divsAll = f.divs.size === DATA.divisions.length;
@@ -294,38 +317,34 @@ function applyConfig(C) {
   }
 
   // ---------- export to Excel ----------
-  function rowsForDimension(d, f, noMatch) {
+  function rowsForGroup(projectsMap, f, noMatch) {
     const aoa = [TBL.excel.slice()];
-    d.projects.forEach(p => {
-      if (f.q && !p.name.toLowerCase().includes(f.q)) return;
-      if (f.rsearch && !p.name.toLowerCase().includes(f.rsearch)) return;
-      const txns = p.txns.filter(t => matchTxn(t, f, noMatch)); let bal = 0;
-      txns.forEach(t => { bal += t.debit - t.credit; aoa.push([p.name, t.date, t.type, t.no, t.ref, t.memo, t.debit, t.credit, bal]); });
+    const projs = [...projectsMap.entries()].sort((a, b) => b[1].length - a[1].length);
+    projs.forEach(([pname, allTxns]) => {
+      if (f.q && !pname.toLowerCase().includes(f.q)) return;
+      if (f.rsearch && !pname.toLowerCase().includes(f.rsearch)) return;
+      const txns = allTxns.filter(t => matchTxn(t, f, noMatch)).sort((a, b) => (a.ts - b.ts)); let bal = 0;
+      txns.forEach(t => { bal += t.debit - t.credit; aoa.push([pname, t.date, t.type, t.no, t.ref, t.memo, t.debit, t.credit, bal]); });
     });
     return aoa;
   }
-  function exportDimension(divName, dimName) {
-    const division = DATA.divisions.find(x => x.name === divName); if (!division) return;
-    const d = division.dimensions.find(x => x.name === dimName); if (!d) return;
+  function exportGroup(name) {
     const f = currentFilters();
-    const aoa = rowsForDimension(d, f, buildNoMatch(f.nos));
+    const g = buildGroups(f).find(x => x.name === name); if (!g) return;
+    const aoa = rowsForGroup(g.projects, f, buildNoMatch(f.nos));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), dimName.slice(0, 31).replace(/[\\/?*\[\]:]/g, ' '));
-    XLSX.writeFile(wb, (divName + '_' + dimName).replace(/[^\w]+/g, '_') + '.xlsx');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), name.slice(0, 31).replace(/[\\/?*\[\]:]/g, ' '));
+    XLSX.writeFile(wb, name.replace(/[^\w]+/g, '_') + '.xlsx');
   }
   function exportAllExcel() {
     const f = currentFilters(), noMatch = buildNoMatch(f.nos), wb = XLSX.utils.book_new(), used = {}; let any = false;
-    DATA.divisions.forEach(division => {
-      if (!f.divs.has(division.name)) return;
-      division.dimensions.forEach(d => {
-        if (!f.dims.has(d.name)) return;
-        const aoa = rowsForDimension(d, f, noMatch);
-        if (aoa.length > 1) {
-          let nm = (division.name + ' ' + d.name).slice(0, 28).replace(/[\\/?*\[\]:]/g, ' ');
-          if (used[nm]) nm = nm.slice(0, 25) + (++used[nm]); else used[nm] = 1;
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nm); any = true;
-        }
-      });
+    buildGroups(f).forEach(g => {
+      const aoa = rowsForGroup(g.projects, f, noMatch);
+      if (aoa.length > 1) {
+        let nm = g.name.slice(0, 28).replace(/[\\/?*\[\]:]/g, ' ');
+        if (used[nm]) nm = nm.slice(0, 25) + (++used[nm]); else used[nm] = 1;
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), nm); any = true;
+      }
     });
     if (any) XLSX.writeFile(wb, CONFIG.report.exportFileName + '.xlsx'); else alert('No rows to export with the current filters.');
   }
@@ -339,8 +358,15 @@ function applyConfig(C) {
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = CONFIG.report.exportFileName + '.doc'; a.click(); URL.revokeObjectURL(a.href);
   }
   document.getElementById('report').addEventListener('click', e => {
-    const b = e.target.closest('.btn-export'); if (b) exportDimension(b.dataset.div, b.dataset.dim);
+    const b = e.target.closest('.btn-export'); if (b) exportGroup(b.dataset.group);
   });
+
+  // group-by toggle (Division vs Cost Dimension)
+  document.querySelectorAll('.gb-btn').forEach(btn => btn.addEventListener('click', () => {
+    groupBy = btn.dataset.group;
+    document.querySelectorAll('.gb-btn').forEach(b => b.classList.toggle('active', b === btn));
+    render();
+  }));
 
   // ---------- multi-select dropdowns ----------
   [['divBox', 'divMenu'], ['dimBox', 'dimMenu']].forEach(([boxId, menuId]) => {
