@@ -177,7 +177,9 @@ function applyConfig(C) {
   }
 
   // Render one group block (a Division or a Cost Dimension) with its merged projects.
-  function groupBlock(name, projectsMap, f, noMatch, meta) {
+  function groupBlock(g, f, noMatch, meta) {
+    const name = g.name, projectsMap = g.projects;
+    const divLabel = [...g.divisions].map(d => d || MISC.defaultDivision).join(', ');
     const projHtml = [], summaryRows = [];
     let dD = 0, dC = 0, dT = 0;
     const projs = [...projectsMap.entries()].sort((a, b) => b[1].length - a[1].length);
@@ -217,7 +219,7 @@ function applyConfig(C) {
       <div class="dimhead"><span class="dimname">${esc(name)}</span>
         <button class="btn-export" data-group="${esc(name)}">${esc(MISC.exportToExcel)}</button></div>
       <div class="dimbody">
-        <div class="dimmeta"><span>${esc(DM.account)}: ${esc(meta.account || '')}</span><span>${esc(DM.period)}: ${esc(meta.from || '')} – ${esc(meta.to || '')}</span><span>${esc(DM.projects)}: ${summaryRows.length}</span></div>
+        <div class="dimmeta"><span>${esc(DM.division)}: ${esc(divLabel)}</span><span>${esc(DM.account)}: ${esc(meta.account || '')}</span><span>${esc(DM.period)}: ${esc(meta.from || '')} – ${esc(meta.to || '')}</span><span>${esc(DM.projects)}: ${summaryRows.length}</span></div>
         <div class="ptitle">${esc(MISC.projectsSummaryTitle)}</div>
         <table class="ptbl">${ptblHead()}
           <tbody>${summaryRows.join('')}</tbody>
@@ -234,12 +236,13 @@ function applyConfig(C) {
   // Collapse the data to a single grouping level (Division OR Cost Dimension).
   function buildGroups(f) {
     const index = new Map(), list = [];
-    const get = (nm, order) => { if (!index.has(nm)) { const g = { name: nm, order, projects: new Map() }; index.set(nm, g); list.push(g); } return index.get(nm); };
+    const get = (nm, order) => { if (!index.has(nm)) { const g = { name: nm, order, projects: new Map(), divisions: new Set() }; index.set(nm, g); list.push(g); } return index.get(nm); };
     DATA.divisions.forEach(div => {
       if (!f.divs.has(div.name)) return;
       div.dimensions.forEach(dim => {
         if (!f.dims.has(dim.name)) return;
         const g = groupBy === 'division' ? get(div.name, div.order) : get(dim.name, dim.order);
+        g.divisions.add(div.name);
         dim.projects.forEach(p => {
           if (!g.projects.has(p.name)) g.projects.set(p.name, []);
           const arr = g.projects.get(p.name);
@@ -272,7 +275,7 @@ function applyConfig(C) {
 
     const out = [];
     buildGroups(f).forEach(g => {
-      const block = groupBlock(g.name, g.projects, f, noMatch, meta);
+      const block = groupBlock(g, f, noMatch, meta);
       if (!block) return;
       gD += block.dD; gC += block.dC; gT += block.dT; gP += block.projects;
       out.push(block.html);
