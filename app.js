@@ -389,8 +389,12 @@ function applyConfig(C) {
       if (candidates.some(c => { const low = c.toLowerCase(); return low.includes(d.key) || (d.alt || []).some(a => low.includes(a)); }))
         return { name: d.name, order: i };
     }
+    // No keyword match: prefer the "Cost dimesion" header, then the Account Name, then the file name.
     const hdr = (meta.costDimension || '').trim();
-    return { name: hdr && hdr.toLowerCase() !== 'all' ? hdr : fname.replace(/\.xlsx$/i, ''), order: DIMS.length };
+    if (hdr && hdr.toLowerCase() !== 'all') return { name: hdr, order: DIMS.length };
+    const acct = (meta.account || '').trim();
+    if (acct) return { name: acct, order: DIMS.length };
+    return { name: fname.replace(/\.xlsx$/i, ''), order: DIMS.length };
   }
   const numv = s => { s = String(s).trim().replace(/,/g, ''); if (!s) return 0; if (s.startsWith('(') && s.endsWith(')')) return -(parseFloat(s.replace(/[()]/g, '')) || 0); return parseFloat(s) || 0; };
   function excelDateDMY(v) {
